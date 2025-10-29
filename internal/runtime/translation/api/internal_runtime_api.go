@@ -2,7 +2,7 @@ package api
 
 // DestiredState represents the desired set of MCPServevrs the user wishes to run locally
 type DesiredState struct {
-	MCPServers []MCPServer `json:"mcpServers"`
+	MCPServers []*MCPServer `json:"mcpServers"`
 }
 
 // MCPServer represents a single MCPServer configuration

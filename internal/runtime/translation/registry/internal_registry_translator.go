@@ -6,54 +6,59 @@ import (
 	"github.com/modelcontextprotocol/registry/pkg/model"
 	"mcp-enterprise-registry/internal/runtime/translation/api"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
 	apiv0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 )
 
+type MCPServerRunRequest struct {
+	RegistryServer *apiv0.ServerJSON
+	PreferRemote   bool
+	EnvValues      map[string]string
+	ArgValues      map[string]string
+	HeaderValues   map[string]string
+}
+
 // Translator is the interface for translating MCPServer objects to AgentGateway objects.
 type Translator interface {
 	TranslateMCPServer(
 		ctx context.Context,
-		registryServer *apiv0.ServerJSON,
-		preferRemote bool,
-		envValues map[string]string,
-		argValues map[string]string,
-		headerValues map[string]string,
+		req *MCPServerRunRequest,
 	) (*api.MCPServer, error)
 }
 
 type registryTranslator struct{}
 
+func NewTranslator() Translator {
+	return &registryTranslator{}
+}
+
 func (t *registryTranslator) TranslateMCPServer(
 	ctx context.Context,
-	registryServer *apiv0.ServerJSON,
-	preferRemote bool,
-	envValues map[string]string,
-	argValues map[string]string,
-	headerValues map[string]string,
+	req *MCPServerRunRequest,
 ) (*api.MCPServer, error) {
-	useRemote := len(registryServer.Remotes) > 0 && (preferRemote || len(registryServer.Packages) == 0)
-	usePackage := len(registryServer.Packages) > 0 && (!preferRemote || len(registryServer.Remotes) == 0)
+	useRemote := len(req.RegistryServer.Remotes) > 0 && (req.PreferRemote || len(req.RegistryServer.Packages) == 0)
+	usePackage := len(req.RegistryServer.Packages) > 0 && (!req.PreferRemote || len(req.RegistryServer.Remotes) == 0)
 
 	switch {
 	case useRemote:
 		return translateRemoteMCPServer(
 			ctx,
-			registryServer,
-			headerValues,
+			req.RegistryServer,
+			req.HeaderValues,
 		)
 	case usePackage:
 		return translateLocalMCPServer(
 			ctx,
-			registryServer,
-			envValues,
-			argValues,
+			req.RegistryServer,
+			req.EnvValues,
+			req.ArgValues,
 		)
 	}
 
-	return nil, fmt.Errorf("no valid deployment method found for server: %s", registryServer.Name)
+	return nil, fmt.Errorf("no valid deployment method found for server: %s", req.RegistryServer.Name)
 }
 
 func translateRemoteMCPServer(
@@ -147,7 +152,10 @@ func translateLocalMCPServer(
 		if cmd == "" {
 			cmd = "npx"
 		}
-		args = []string{packageInfo.Identifier}
+		if !slices.Contains(args, "-y") {
+			args = append(args, "-y")
+		}
+		args = append(args, packageInfo.Identifier)
 	case "pypi":
 		image = "ghcr.io/astral-sh/uv:debian"
 		if cmd == "" {
