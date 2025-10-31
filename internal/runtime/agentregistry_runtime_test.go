@@ -25,9 +25,6 @@ func Test_AgentRegistryRuntime_ReconcileMCPServers(t *testing.T) {
 	composeTranslator := dockercompose.NewAgentGatewayTranslator(runtimeDir, 18080)
 	regTranslator := registry.NewTranslator()
 
-	// override for now
-	runtimeDir = "/Users/ilackarms/workspace/solo/code/mcp-enterprise-registry"
-
 	r := NewAgentRegistryRuntime(regTranslator, composeTranslator, runtimeDir, true)
 
 	var reqs []*registry.MCPServerRunRequest

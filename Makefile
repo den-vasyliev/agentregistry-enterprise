@@ -97,9 +97,6 @@ scraper:
 swag:
 	swag init -g ./cmd/registry-api/main.go -o ./api
 
-test:
-	go test ./...
-
 fmt:
 	gofmt -s -w .
 
