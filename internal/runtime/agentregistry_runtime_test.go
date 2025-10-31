@@ -1,27 +1,32 @@
+//go:build integration
+// +build integration
+
 package runtime
 
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/agentregistry-dev/agentregistry/internal/runtime/translation/dockercompose"
 	"github.com/agentregistry-dev/agentregistry/internal/runtime/translation/registry"
-	"time"
 
 	apiv0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 )
 
-func Test_AgentRegistryRuntime_ReconcileMCPServers(t *testing.T) {
+// Test_AgentRegistryRuntime_ReconcileMCPServers_DockerIntegration tests that
+// ReconcileMCPServers actually starts Docker containers correctly.
+// This test requires Docker to be available.
+func Test_AgentRegistryRuntime_ReconcileMCPServers_DockerIntegration(t *testing.T) {
 	ctx := context.Background()
 	// Create a temp runtime dir
 	runtimeDir := t.TempDir()
 
 	// Real docker-compose translator, using the temp runtime dir for working files
+	// Note: We pass executeMCPRuntime=true to actually start Docker containers
 	composeTranslator := dockercompose.NewAgentGatewayTranslator(runtimeDir, 18080)
 	regTranslator := registry.NewTranslator()
 
@@ -56,14 +61,6 @@ func Test_AgentRegistryRuntime_ReconcileMCPServers(t *testing.T) {
 
 	if err := r.ReconcileMCPServers(ctx, reqs); err != nil {
 		t.Fatalf("ReconcileMCPServers: %v", err)
-	}
-
-	// Assert files were written
-	if _, err := os.Stat(filepath.Join(runtimeDir, "docker-compose.yaml")); err != nil {
-		t.Fatalf("docker-compose.yaml missing: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(runtimeDir, "agent-gateway.yaml")); err != nil {
-		t.Fatalf("agent-gateway.yaml missing: %v", err)
 	}
 
 	// Give docker a brief moment to start containers

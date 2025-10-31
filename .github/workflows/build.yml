@@ -56,7 +56,7 @@ jobs:
     - name: Build Go CLI
       run: go build -v -o bin/arctl main.go
 
-    - name: Test Go
+    - name: Test Go (Unit Tests)
       run: go test -v ./...
 
     - name: Verify binary
@@ -67,6 +67,22 @@ jobs:
       with:
         name: arctl-${{ matrix.os }}
         path: bin/arctl
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: 1.22.x
+
+    - name: Download Go dependencies
+      run: go mod download
+
+    - name: Run Integration Tests
+      run: go test -v -tags=integration ./...
 
   lint:
     runs-on: ubuntu-latest
