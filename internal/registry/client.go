@@ -75,7 +75,7 @@ func NewClient() *Client {
 func (c *Client) ValidateRegistry(baseURL string) error {
 	// Try to fetch the first page with limit=1 to validate
 	testURL := fmt.Sprintf("%s?limit=1", baseURL)
-	
+
 	resp, err := c.HTTPClient.Get(testURL)
 	if err != nil {
 		return fmt.Errorf("failed to connect to registry: %w", err)
@@ -199,4 +199,3 @@ func (c *Client) FetchAllServers(baseURL string, opts FetchOptions) ([]ServerEnt
 
 	return allServers, nil
 }
-

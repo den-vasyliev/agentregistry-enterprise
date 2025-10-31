@@ -482,16 +482,16 @@ func printSkillsTable(skills []models.Skill) {
 		status := printer.FormatStatus(s.Installed)
 
 		t.AddRow(
-		printer.TruncateString(s.Name, 40),
-		printer.TruncateString(s.Description, 50),
-		s.Version,
-		status,
-	)
-}
+			printer.TruncateString(s.Name, 40),
+			printer.TruncateString(s.Description, 50),
+			s.Version,
+			status,
+		)
+	}
 
-if err := t.Render(); err != nil {
-	printer.PrintError(fmt.Sprintf("failed to render table: %v", err))
-}
+	if err := t.Render(); err != nil {
+		printer.PrintError(fmt.Sprintf("failed to render table: %v", err))
+	}
 }
 
 // filterServersByType filters servers by their registry type
@@ -568,17 +568,17 @@ func listAllResourceTypes() {
 
 		for _, r := range registries {
 			t.AddRow(
-			r.Name,
-			r.URL,
-			r.Type,
-			printer.FormatAge(r.CreatedAt),
-		)
-	}
+				r.Name,
+				r.URL,
+				r.Type,
+				printer.FormatAge(r.CreatedAt),
+			)
+		}
 
-	if err := t.Render(); err != nil {
-		printer.PrintError(fmt.Sprintf("failed to render table: %v", err))
+		if err := t.Render(); err != nil {
+			printer.PrintError(fmt.Sprintf("failed to render table: %v", err))
+		}
 	}
-}
 }
 
 // outputServersJSON outputs servers in JSON format

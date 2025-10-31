@@ -36,6 +36,7 @@ export function GroupedMCPServerCard({
           <div className="flex-shrink-0">
             <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
               {groupedServer.icon ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={groupedServer.icon}
                   alt={groupedServer.title || groupedServer.name}

@@ -88,4 +88,3 @@ func FormatAge(t time.Time) string {
 	seconds := int(duration.Seconds())
 	return fmt.Sprintf("%ds", seconds)
 }
-

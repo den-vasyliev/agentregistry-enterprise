@@ -5,8 +5,6 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import { MCPServerWithStatus, MCPTool } from "@/lib/types"
 import { Play, RotateCw, AlertCircle, CheckCircle2 } from "lucide-react"
 
@@ -15,7 +13,7 @@ interface ServerPlaygroundProps {
 }
 
 // Mock tools for demonstration
-const getMockTools = (serverName: string): MCPTool[] => {
+const getMockTools = (): MCPTool[] => {
   return [
     {
       name: "get_weather",
@@ -60,14 +58,14 @@ const getMockTools = (serverName: string): MCPTool[] => {
   ]
 }
 
-export function ServerPlayground({ server }: ServerPlaygroundProps) {
+export function ServerPlayground({ }: ServerPlaygroundProps) {
   const [selectedTool, setSelectedTool] = useState<MCPTool | null>(null)
-  const [inputs, setInputs] = useState<Record<string, any>>({})
+  const [inputs, setInputs] = useState<Record<string, string | number>>({})
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<{ success: boolean; data: { tool: string; inputs: Record<string, string | number>; output: string; executedAt: string } } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const tools = getMockTools(server.server.name)
+  const tools = getMockTools()
 
   const handleToolSelect = (tool: MCPTool) => {
     setSelectedTool(tool)
@@ -76,7 +74,7 @@ export function ServerPlayground({ server }: ServerPlaygroundProps) {
     setError(null)
   }
 
-  const handleInputChange = (key: string, value: any) => {
+  const handleInputChange = (key: string, value: string | number) => {
     setInputs((prev) => ({ ...prev, [key]: value }))
   }
 
@@ -89,28 +87,23 @@ export function ServerPlayground({ server }: ServerPlaygroundProps) {
 
     // Simulate API call
     setTimeout(() => {
-      try {
-        // Mock successful response
-        setResult({
-          success: true,
-          data: {
-            tool: selectedTool.name,
-            inputs: inputs,
-            output: "Mock response - Replace with actual tool execution",
-            executedAt: new Date().toISOString(),
-          },
-        })
-      } catch (err) {
-        setError("Failed to execute tool")
-      } finally {
-        setLoading(false)
-      }
+      // Mock successful response
+      setResult({
+        success: true,
+        data: {
+          tool: selectedTool.name,
+          inputs: inputs,
+          output: "Mock response - Replace with actual tool execution",
+          executedAt: new Date().toISOString(),
+        },
+      })
+      setLoading(false)
     }, 1000)
   }
 
   const renderInputField = (
     key: string,
-    schema: any,
+    schema: { type?: string; enum?: string[]; default?: string | number; description?: string; minimum?: number; maximum?: number },
     required: boolean
   ) => {
     if (schema.enum) {
@@ -236,9 +229,9 @@ export function ServerPlayground({ server }: ServerPlaygroundProps) {
             <div className="space-y-4">
               <h4 className="font-medium">Parameters</h4>
               {Object.entries(selectedTool.inputSchema.properties || {}).map(
-                ([key, schema]: [string, any]) => {
+                ([key, schema]) => {
                   const required = selectedTool.inputSchema.required?.includes(key)
-                  return renderInputField(key, schema, required)
+                  return renderInputField(key, schema as { type?: string; enum?: string[]; default?: string | number; description?: string; minimum?: number; maximum?: number }, required)
                 }
               )}
             </div>

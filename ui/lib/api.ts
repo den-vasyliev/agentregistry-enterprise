@@ -119,7 +119,7 @@ class ApiClient {
   }
 
   // Skills
-  async getSkills(): Promise<any[]> {
+  async getSkills(): Promise<unknown[]> {
     const response = await fetch(`${this.baseUrl}/api/skills`)
     if (!response.ok) {
       throw new Error('Failed to fetch skills')
@@ -128,7 +128,7 @@ class ApiClient {
   }
 
   // Agents
-  async getAgents(): Promise<any[]> {
+  async getAgents(): Promise<unknown[]> {
     const response = await fetch(`${this.baseUrl}/api/agents`)
     if (!response.ok) {
       throw new Error('Failed to fetch agents')

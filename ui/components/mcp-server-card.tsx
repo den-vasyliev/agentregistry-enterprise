@@ -39,6 +39,7 @@ export function MCPServerCard({
           <div className="flex-shrink-0">
             <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
               {icon ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={icon}
                   alt={serverData.title || serverData.name}

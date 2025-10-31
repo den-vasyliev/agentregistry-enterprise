@@ -18,30 +18,21 @@ import {
   Database,
   Search,
   Plus,
-  Settings,
   HardDrive,
   Globe,
   Link as LinkIcon,
   Trash2,
   RefreshCw,
-  Zap,
-  Bot,
 } from "lucide-react"
 
 type ViewMode = "browse" | "installed"
-type ResourceType = "servers" | "skills" | "agents"
 
 export default function Home() {
   const [viewMode, setViewMode] = useState<ViewMode>("browse")
-  const [resourceType, setResourceType] = useState<ResourceType>("servers")
   const [registries, setRegistries] = useState<Registry[]>([])
   const [servers, setServers] = useState<MCPServerWithStatus[]>([])
   const [groupedServers, setGroupedServers] = useState<GroupedMCPServer[]>([])
-  const [skills, setSkills] = useState<any[]>([])
-  const [agents, setAgents] = useState<any[]>([])
   const [filteredGroupedServers, setFilteredGroupedServers] = useState<GroupedMCPServer[]>([])
-  const [filteredSkills, setFilteredSkills] = useState<any[]>([])
-  const [filteredAgents, setFilteredAgents] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedServer, setSelectedServer] = useState<MCPServerWithStatus | null>(null)
   const [installDialogOpen, setInstallDialogOpen] = useState(false)
@@ -55,18 +46,14 @@ export default function Home() {
     try {
       setLoading(true)
       setError(null)
-      const [registriesData, serversData, skillsData, agentsData] = await Promise.all([
+      const [registriesData, serversData] = await Promise.all([
         apiClient.getRegistries(),
         apiClient.getServers(),
-        apiClient.getSkills(),
-        apiClient.getAgents(),
       ])
       setRegistries(registriesData || [])
       const transformedServers = transformServerList(serversData || [])
       setServers(transformedServers)
       setGroupedServers(groupServersByName(transformedServers))
-      setSkills(skillsData || [])
-      setAgents(agentsData || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch data")
     } finally {
@@ -94,37 +81,7 @@ export default function Home() {
       )
     }
     setFilteredGroupedServers(filteredGS)
-
-    // Filter skills
-    let filteredSk = skills
-    if (viewMode === "installed") {
-      filteredSk = skills.filter((s) => s.installed)
-    }
-    if (searchQuery) {
-      filteredSk = filteredSk.filter(
-        (s) =>
-          s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.description.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    }
-    setFilteredSkills(filteredSk)
-
-    // Filter agents
-    let filteredA = agents
-    if (viewMode === "installed") {
-      filteredA = agents.filter((a) => a.installed)
-    }
-    if (searchQuery) {
-      filteredA = filteredA.filter(
-        (a) =>
-          a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          a.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          a.description.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    }
-    setFilteredAgents(filteredA)
-  }, [viewMode, searchQuery, groupedServers, skills, agents])
+  }, [viewMode, searchQuery, groupedServers])
 
   const handleInstall = (groupedServer: GroupedMCPServer) => {
     setServerToInstall(groupedServer)

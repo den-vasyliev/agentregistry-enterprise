@@ -133,23 +133,23 @@ func TestFetchAllServers_SinglePage(t *testing.T) {
 						Version:     "2.0.0",
 						Status:      "active",
 					},
-				Meta: json.RawMessage(`{"official":{"status":"active"}}`),
+					Meta: json.RawMessage(`{"official":{"status":"active"}}`),
+				},
 			},
-		},
-		Metadata: RegistryMetadata{
-			Count:      2,
-			NextCursor: "",
-		},
-	}
+			Metadata: RegistryMetadata{
+				Count:      2,
+				NextCursor: "",
+			},
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
-}))
-defer server.Close()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
 
-client := NewClient()
-servers, err := client.FetchAllServers(server.URL, FetchOptions{
-	ShowProgress: false,
+	client := NewClient()
+	servers, err := client.FetchAllServers(server.URL, FetchOptions{
+		ShowProgress: false,
 		Verbose:      false,
 	})
 
@@ -297,21 +297,21 @@ func TestFetchAllServers_FilterInactiveServers(t *testing.T) {
 					Meta: json.RawMessage(`{}`),
 				},
 			},
-		Metadata: RegistryMetadata{
-			Count:      4,
-			NextCursor: "",
-		},
-	}
+			Metadata: RegistryMetadata{
+				Count:      4,
+				NextCursor: "",
+			},
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
-}))
-defer server.Close()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
 
-client := NewClient()
-servers, err := client.FetchAllServers(server.URL, FetchOptions{
-	ShowProgress: false,
-	Verbose:      false,
+	client := NewClient()
+	servers, err := client.FetchAllServers(server.URL, FetchOptions{
+		ShowProgress: false,
+		Verbose:      false,
 	})
 
 	if err != nil {
@@ -344,21 +344,21 @@ func TestFetchAllServers_EmptyStatus(t *testing.T) {
 					Meta: json.RawMessage(`{}`),
 				},
 			},
-		Metadata: RegistryMetadata{
-			Count:      1,
-			NextCursor: "",
-		},
-	}
+			Metadata: RegistryMetadata{
+				Count:      1,
+				NextCursor: "",
+			},
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
-}))
-defer server.Close()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
 
-client := NewClient()
-servers, err := client.FetchAllServers(server.URL, FetchOptions{
-	ShowProgress: false,
-	Verbose:      false,
+	client := NewClient()
+	servers, err := client.FetchAllServers(server.URL, FetchOptions{
+		ShowProgress: false,
+		Verbose:      false,
 	})
 
 	if err != nil {
@@ -389,17 +389,17 @@ func TestFetchAllServers_HTTPError(t *testing.T) {
 						},
 						Meta: json.RawMessage(`{}`),
 					},
-			},
-			Metadata: RegistryMetadata{
-				Count:      1,
-				NextCursor: "page2",
-			},
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(response)
-	} else {
-		// Second page fails
-		w.WriteHeader(http.StatusInternalServerError)
+				},
+				Metadata: RegistryMetadata{
+					Count:      1,
+					NextCursor: "page2",
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(response)
+		} else {
+			// Second page fails
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}))
 	defer server.Close()
@@ -447,21 +447,21 @@ func TestFetchAllServers_WithProgressBar(t *testing.T) {
 					Meta: json.RawMessage(`{}`),
 				},
 			},
-		Metadata: RegistryMetadata{
-			Count:      1,
-			NextCursor: "",
-		},
-	}
+			Metadata: RegistryMetadata{
+				Count:      1,
+				NextCursor: "",
+			},
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
-}))
-defer server.Close()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
 
-client := NewClient()
-servers, err := client.FetchAllServers(server.URL, FetchOptions{
-	ShowProgress: true,
-	Verbose:      false,
+	client := NewClient()
+	servers, err := client.FetchAllServers(server.URL, FetchOptions{
+		ShowProgress: true,
+		Verbose:      false,
 	})
 
 	if err != nil {
@@ -477,21 +477,21 @@ func TestFetchAllServers_EmptyRegistry(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		response := RegistryResponse{
 			Servers: []ServerEntry{},
-		Metadata: RegistryMetadata{
-			Count:      0,
-			NextCursor: "",
-		},
-	}
+			Metadata: RegistryMetadata{
+				Count:      0,
+				NextCursor: "",
+			},
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
-}))
-defer server.Close()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
 
-client := NewClient()
-servers, err := client.FetchAllServers(server.URL, FetchOptions{
-	ShowProgress: false,
-	Verbose:      false,
+	client := NewClient()
+	servers, err := client.FetchAllServers(server.URL, FetchOptions{
+		ShowProgress: false,
+		Verbose:      false,
 	})
 
 	if err != nil {
@@ -511,20 +511,20 @@ func TestFetchAllServers_PaginationLimit(t *testing.T) {
 			t.Errorf("Expected limit=100, got %s", limit)
 		}
 
-	response := RegistryResponse{
-		Servers:  []ServerEntry{},
-		Metadata: RegistryMetadata{Count: 0, NextCursor: ""},
-	}
+		response := RegistryResponse{
+			Servers:  []ServerEntry{},
+			Metadata: RegistryMetadata{Count: 0, NextCursor: ""},
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
-}))
-defer server.Close()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
 
-client := NewClient()
-_, err := client.FetchAllServers(server.URL, FetchOptions{
-	ShowProgress: false,
-	Verbose:      false,
+	client := NewClient()
+	_, err := client.FetchAllServers(server.URL, FetchOptions{
+		ShowProgress: false,
+		Verbose:      false,
 	})
 
 	if err != nil {

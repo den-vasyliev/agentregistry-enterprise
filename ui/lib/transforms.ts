@@ -8,7 +8,7 @@ export function transformServerDetail(serverDetail: ServerDetail): MCPServerWith
   let serverData: Server
   try {
     serverData = JSON.parse(serverDetail.data)
-  } catch (err) {
+  } catch {
     // Fallback if data is invalid
     serverData = {
       name: serverDetail.name,

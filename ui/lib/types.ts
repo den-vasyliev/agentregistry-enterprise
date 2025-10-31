@@ -92,7 +92,7 @@ export interface Server {
   repository?: Repository
   websiteUrl?: string
   _meta?: {
-    "io.modelcontextprotocol.registry/publisher-provided"?: Record<string, any>
+    "io.modelcontextprotocol.registry/publisher-provided"?: Record<string, unknown>
   }
 }
 
@@ -134,7 +134,11 @@ export interface GroupedMCPServer {
 export interface MCPTool {
   name: string
   description: string
-  inputSchema: Record<string, any>
+  inputSchema: {
+    type: string
+    properties?: Record<string, unknown>
+    required?: string[]
+  }
 }
 
 // Score metrics

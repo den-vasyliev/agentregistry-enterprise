@@ -149,16 +149,16 @@ var showCmd = &cobra.Command{
 			// Display skill details in table format
 			t := printer.NewTablePrinter(os.Stdout)
 			t.SetHeaders("Property", "Value")
-		t.AddRow("Name", skill.Name)
-		t.AddRow("Description", skill.Description)
-		t.AddRow("Version", skill.Version)
-		t.AddRow("Status", printer.FormatStatus(skill.Installed))
-		t.AddRow("Registry", skill.RegistryName)
-		if err := t.Render(); err != nil {
-			printer.PrintError(fmt.Sprintf("failed to render table: %v", err))
-		}
+			t.AddRow("Name", skill.Name)
+			t.AddRow("Description", skill.Description)
+			t.AddRow("Version", skill.Version)
+			t.AddRow("Status", printer.FormatStatus(skill.Installed))
+			t.AddRow("Registry", skill.RegistryName)
+			if err := t.Render(); err != nil {
+				printer.PrintError(fmt.Sprintf("failed to render table: %v", err))
+			}
 
-	case "registry":
+		case "registry":
 			registry, err := database.GetRegistryByName(resourceName)
 			if err != nil {
 				log.Fatalf("Failed to get registry: %v", err)
@@ -171,16 +171,16 @@ var showCmd = &cobra.Command{
 			// Display registry details in table format
 			t := printer.NewTablePrinter(os.Stdout)
 			t.SetHeaders("Property", "Value")
-		t.AddRow("Name", registry.Name)
-		t.AddRow("URL", registry.URL)
-		t.AddRow("Type", registry.Type)
-		t.AddRow("Added", printer.FormatTimestampShort(registry.CreatedAt))
-		t.AddRow("Age", printer.FormatAge(registry.CreatedAt))
-		if err := t.Render(); err != nil {
-			printer.PrintError(fmt.Sprintf("failed to render table: %v", err))
-		}
+			t.AddRow("Name", registry.Name)
+			t.AddRow("URL", registry.URL)
+			t.AddRow("Type", registry.Type)
+			t.AddRow("Added", printer.FormatTimestampShort(registry.CreatedAt))
+			t.AddRow("Age", printer.FormatAge(registry.CreatedAt))
+			if err := t.Render(); err != nil {
+				printer.PrintError(fmt.Sprintf("failed to render table: %v", err))
+			}
 
-	default:
+		default:
 			fmt.Printf("Unknown resource type: %s\n", resourceType)
 			fmt.Println("Valid types: mcp, skill, registry")
 		}
