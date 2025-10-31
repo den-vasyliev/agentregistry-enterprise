@@ -27,8 +27,8 @@ install-ui:
 
 # Build the Next.js UI (outputs to internal/api/ui/dist)
 build-ui: install-ui
-	@echo "Building Next.js UI..."
-	cd ui && npm run build
+	@echo "Building Next.js UI for embedding..."
+	cd ui && npm run build:export
 	@echo "UI built successfully to internal/api/ui/dist/"
 
 # Clean UI build artifacts

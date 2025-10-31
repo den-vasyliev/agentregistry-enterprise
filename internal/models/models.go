@@ -33,18 +33,36 @@ type Skill struct {
 	ID          int       `json:"id"`
 	RegistryID  int       `json:"registry_id"`
 	Name        string    `json:"name"`
+	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Version     string    `json:"version"`
+	Category    string    `json:"category"` // e.g., "data-processing", "communication", "automation"
 	Installed   bool      `json:"installed"`
 	Data        string    `json:"data"` // JSON blob
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// Installation represents an installed resource (MCP server or skill)
+// Agent represents an AI agent from the registry
+type Agent struct {
+	ID          int       `json:"id"`
+	RegistryID  int       `json:"registry_id"`
+	Name        string    `json:"name"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Version     string    `json:"version"`
+	Model       string    `json:"model"`     // e.g., "gpt-4", "claude-3-opus"
+	Specialty   string    `json:"specialty"` // e.g., "coding", "research", "customer-support"
+	Installed   bool      `json:"installed"`
+	Data        string    `json:"data"` // JSON blob
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// Installation represents an installed resource (MCP server, skill, or agent)
 type Installation struct {
 	ID           int       `json:"id"`
-	ResourceType string    `json:"resource_type"` // mcp, skill
+	ResourceType string    `json:"resource_type"` // mcp, skill, agent
 	ResourceID   int       `json:"resource_id"`
 	ResourceName string    `json:"resource_name"`
 	Version      string    `json:"version"`

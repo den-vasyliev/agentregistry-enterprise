@@ -79,8 +79,27 @@ func createTables() error {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		registry_id INTEGER NOT NULL,
 		name TEXT NOT NULL,
+		title TEXT,
 		description TEXT NOT NULL,
 		version TEXT NOT NULL,
+		category TEXT,
+		installed BOOLEAN DEFAULT 0,
+		data TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (registry_id) REFERENCES registries(id) ON DELETE CASCADE,
+		UNIQUE(registry_id, name, version)
+	);
+
+	CREATE TABLE IF NOT EXISTS agents (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		registry_id INTEGER NOT NULL,
+		name TEXT NOT NULL,
+		title TEXT,
+		description TEXT NOT NULL,
+		version TEXT NOT NULL,
+		model TEXT,
+		specialty TEXT,
 		installed BOOLEAN DEFAULT 0,
 		data TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -103,8 +122,10 @@ func createTables() error {
 
 	CREATE INDEX IF NOT EXISTS idx_servers_registry ON servers(registry_id);
 	CREATE INDEX IF NOT EXISTS idx_skills_registry ON skills(registry_id);
+	CREATE INDEX IF NOT EXISTS idx_agents_registry ON agents(registry_id);
 	CREATE INDEX IF NOT EXISTS idx_servers_installed ON servers(installed);
 	CREATE INDEX IF NOT EXISTS idx_skills_installed ON skills(installed);
+	CREATE INDEX IF NOT EXISTS idx_agents_installed ON agents(installed);
 	`
 
 	_, err := DB.Exec(schema)
@@ -146,6 +167,11 @@ func GetRegistries() ([]models.Registry, error) {
 		registries = append(registries, r)
 	}
 
+	// Return empty array instead of nil if no registries found
+	if registries == nil {
+		return []models.Registry{}, nil
+	}
+
 	return registries, nil
 }
 
@@ -176,6 +202,11 @@ func GetServers() ([]models.ServerDetail, error) {
 		servers = append(servers, s)
 	}
 
+	// Return empty array instead of nil if no servers found
+	if servers == nil {
+		return []models.ServerDetail{}, nil
+	}
+
 	return servers, nil
 }
 
@@ -186,7 +217,7 @@ func GetSkills() ([]models.Skill, error) {
 	}
 
 	rows, err := DB.Query(`
-		SELECT id, registry_id, name, description, version, installed, data, created_at, updated_at 
+		SELECT id, registry_id, name, COALESCE(title, ''), description, version, COALESCE(category, ''), installed, data, created_at, updated_at 
 		FROM skills 
 		ORDER BY name, version DESC
 	`)
@@ -200,13 +231,53 @@ func GetSkills() ([]models.Skill, error) {
 	var skills []models.Skill
 	for rows.Next() {
 		var s models.Skill
-		if err := rows.Scan(&s.ID, &s.RegistryID, &s.Name, &s.Description, &s.Version, &s.Installed, &s.Data, &s.CreatedAt, &s.UpdatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.RegistryID, &s.Name, &s.Title, &s.Description, &s.Version, &s.Category, &s.Installed, &s.Data, &s.CreatedAt, &s.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan skill: %w", err)
 		}
 		skills = append(skills, s)
 	}
 
+	// Return empty array instead of nil if no skills found
+	if skills == nil {
+		return []models.Skill{}, nil
+	}
+
 	return skills, nil
+}
+
+// GetAgents returns all agents from connected registries
+func GetAgents() ([]models.Agent, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	rows, err := DB.Query(`
+		SELECT id, registry_id, name, COALESCE(title, ''), description, version, COALESCE(model, ''), COALESCE(specialty, ''), installed, data, created_at, updated_at 
+		FROM agents 
+		ORDER BY name, version DESC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query agents: %w", err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	var agents []models.Agent
+	for rows.Next() {
+		var a models.Agent
+		if err := rows.Scan(&a.ID, &a.RegistryID, &a.Name, &a.Title, &a.Description, &a.Version, &a.Model, &a.Specialty, &a.Installed, &a.Data, &a.CreatedAt, &a.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan agent: %w", err)
+		}
+		agents = append(agents, a)
+	}
+
+	// Return empty array instead of nil if no agents found
+	if agents == nil {
+		return []models.Agent{}, nil
+	}
+
+	return agents, nil
 }
 
 // GetInstallations returns all installed resources
@@ -234,6 +305,11 @@ func GetInstallations() ([]models.Installation, error) {
 			return nil, fmt.Errorf("failed to scan installation: %w", err)
 		}
 		installations = append(installations, i)
+	}
+
+	// Return empty array instead of nil if no installations found
+	if installations == nil {
+		return []models.Installation{}, nil
 	}
 
 	return installations, nil
@@ -315,4 +391,144 @@ func ClearRegistryServers(registryID int) error {
 	}
 
 	return nil
+}
+
+// RemoveRegistryByID removes a registry by ID
+func RemoveRegistryByID(id string) error {
+	if DB == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	result, err := DB.Exec(`DELETE FROM registries WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("failed to remove registry: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("registry not found with id: %s", id)
+	}
+
+	return nil
+}
+
+// InstallServer marks a server as installed and stores its configuration
+func InstallServer(serverID string, config map[string]string) error {
+	if DB == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	// Start a transaction
+	tx, err := DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	// Get server details
+	var server models.ServerDetail
+	err = tx.QueryRow(`
+		SELECT id, name, version, data 
+		FROM servers 
+		WHERE id = ?
+	`, serverID).Scan(&server.ID, &server.Name, &server.Version, &server.Data)
+	if err != nil {
+		return fmt.Errorf("server not found: %w", err)
+	}
+
+	// Mark server as installed
+	_, err = tx.Exec(`UPDATE servers SET installed = 1 WHERE id = ?`, serverID)
+	if err != nil {
+		return fmt.Errorf("failed to mark server as installed: %w", err)
+	}
+
+	// Marshal config to JSON
+	configJSON := "{}"
+	if len(config) > 0 {
+		configBytes, err := marshalConfig(config)
+		if err != nil {
+			return fmt.Errorf("failed to marshal config: %w", err)
+		}
+		configJSON = string(configBytes)
+	}
+
+	// Add installation record
+	_, err = tx.Exec(`
+		INSERT INTO installations (resource_type, resource_id, resource_name, version, config)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT(resource_type, resource_name) DO UPDATE SET
+			version = excluded.version,
+			config = excluded.config,
+			updated_at = CURRENT_TIMESTAMP
+	`, "mcp", server.ID, server.Name, server.Version, configJSON)
+	if err != nil {
+		return fmt.Errorf("failed to add installation: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+// UninstallServer marks a server as uninstalled and removes its installation record
+func UninstallServer(serverID string) error {
+	if DB == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	tx, err := DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	// Get server name
+	var serverName string
+	err = tx.QueryRow(`SELECT name FROM servers WHERE id = ?`, serverID).Scan(&serverName)
+	if err != nil {
+		return fmt.Errorf("server not found: %w", err)
+	}
+
+	// Mark server as not installed
+	_, err = tx.Exec(`UPDATE servers SET installed = 0 WHERE id = ?`, serverID)
+	if err != nil {
+		return fmt.Errorf("failed to mark server as uninstalled: %w", err)
+	}
+
+	// Remove installation record
+	_, err = tx.Exec(`DELETE FROM installations WHERE resource_type = ? AND resource_name = ?`, "mcp", serverName)
+	if err != nil {
+		return fmt.Errorf("failed to remove installation: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+func marshalConfig(config map[string]string) ([]byte, error) {
+	// Simple JSON marshaling
+	result := "{"
+	first := true
+	for k, v := range config {
+		if !first {
+			result += ","
+		}
+		result += fmt.Sprintf(`"%s":"%s"`, k, v)
+		first = false
+	}
+	result += "}"
+	return []byte(result), nil
 }
