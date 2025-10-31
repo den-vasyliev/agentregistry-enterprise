@@ -169,7 +169,7 @@ export function ServerPlayground({ }: ServerPlaygroundProps) {
         <Input
           id={key}
           type="text"
-          placeholder={schema.default}
+          placeholder={schema.default?.toString()}
           value={inputs[key] || ""}
           onChange={(e) => handleInputChange(key, e.target.value)}
           required={required}
@@ -230,7 +230,7 @@ export function ServerPlayground({ }: ServerPlaygroundProps) {
               <h4 className="font-medium">Parameters</h4>
               {Object.entries(selectedTool.inputSchema.properties || {}).map(
                 ([key, schema]) => {
-                  const required = selectedTool.inputSchema.required?.includes(key)
+                  const required = selectedTool.inputSchema.required?.includes(key) ?? false
                   return renderInputField(key, schema as { type?: string; enum?: string[]; default?: string | number; description?: string; minimum?: number; maximum?: number }, required)
                 }
               )}
