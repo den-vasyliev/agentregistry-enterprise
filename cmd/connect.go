@@ -9,14 +9,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	registryType string
-)
-
 var connectCmd = &cobra.Command{
 	Use:   "connect <registry-url> <registry-name>",
-	Short: "Connect to a public or private registry",
-	Long:  `Connects an existing public or private registry to arctl. This will fetch the data from the registry and store it locally.`,
+	Short: "Connect to a registry",
+	Long:  `Connects an existing registry to arctl. This will fetch the data from the registry and store it locally.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		registryURL := args[0]
@@ -34,19 +30,8 @@ var connectCmd = &cobra.Command{
 
 		fmt.Printf("Connecting to registry: %s (%s)\n", registryName, registryURL)
 
-		// Validate registry type
-		registryType = strings.ToLower(registryType)
-		if registryType != "public" && registryType != "private" {
-			log.Fatalf("Invalid registry type: %s (must be 'public' or 'private')", registryType)
-		}
-
-		// TODO: Implement registry data fetching
-		// 1. Validate registry URL by trying to fetch data
-		// 2. Parse registry data (MCP servers, skills)
-		// 3. Store servers and skills in database
-
-		// For now, just add the registry
-		if err := database.AddRegistry(registryName, registryURL, registryType); err != nil {
+		// Add the registry with default type
+		if err := database.AddRegistry(registryName, registryURL, "registry"); err != nil {
 			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 				log.Fatalf("Registry '%s' already exists", registryName)
 			}
@@ -55,12 +40,11 @@ var connectCmd = &cobra.Command{
 
 		fmt.Println("✓ Registry connected successfully")
 		fmt.Println("\nNext steps:")
-		fmt.Println("  - Run 'arctl refresh' to fetch registry data")
-		fmt.Println("  - Run 'arctl list mcp' to see available MCP servers")
+		fmt.Println("  Run 'arctl refresh' to fetch registry data")
+		fmt.Println("  Run 'arctl list mcp' to see available MCP servers")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(connectCmd)
-	connectCmd.Flags().StringVarP(&registryType, "type", "t", "public", "Registry type (public or private)")
 }

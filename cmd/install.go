@@ -2,12 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 
+	"github.com/agentregistry-dev/agentregistry/internal/database"
+	"github.com/agentregistry-dev/agentregistry/internal/printer"
 	"github.com/spf13/cobra"
 )
 
 var installCmd = &cobra.Command{
-	Use:   "install <resource-type> <resource-name> [version] [config]",
+	Use:   "install <resource-type> <resource-name> [version]",
 	Short: "Install a resource",
 	Long:  `Install resources (mcp server, skill) from connected registries.`,
 	Args:  cobra.MinimumNArgs(2),
@@ -19,6 +22,16 @@ var installCmd = &cobra.Command{
 			version = args[2]
 		}
 
+		// Initialize database
+		if err := database.Initialize(); err != nil {
+			log.Fatalf("Failed to initialize database: %v", err)
+		}
+		defer func() {
+			if err := database.Close(); err != nil {
+				log.Printf("Warning: Failed to close database: %v", err)
+			}
+		}()
+
 		fmt.Printf("Installing %s: %s@%s\n", resourceType, resourceName, version)
 
 		// TODO: Implement install logic
@@ -27,14 +40,21 @@ var installCmd = &cobra.Command{
 		// 3. Install and configure resource
 		// 4. Update local database
 
-		if resourceType == "mcp" {
-			fmt.Println("Environment variables required:")
-			fmt.Println("  - API_KEY (required)")
-			fmt.Println("  - API_URL (optional)")
-			// TODO: Prompt user for values
+		switch resourceType {
+		case "mcp":
+			// Placeholder for MCP server installation
+			fmt.Println("\nEnvironment variables may be required")
+			fmt.Println("Configuration will be prompted during installation")
+		case "skill":
+			// Placeholder for skill installation
+			fmt.Println("\nInstalling skill package")
+		default:
+			printer.PrintError(fmt.Sprintf("Unknown resource type: %s", resourceType))
+			fmt.Println("Valid types: mcp, skill")
+			return
 		}
 
-		fmt.Println("✓ Installation completed successfully")
+		printer.PrintSuccess("Installation completed successfully")
 	},
 }
 

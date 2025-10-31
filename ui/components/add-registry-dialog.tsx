@@ -26,7 +26,6 @@ export function AddRegistryDialog({
 }: AddRegistryDialogProps) {
   const [name, setName] = useState("")
   const [url, setUrl] = useState("")
-  const [type, setType] = useState("public")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,10 +35,9 @@ export function AddRegistryDialog({
     setError(null)
 
     try {
-      await onAdd(name, url, type)
+      await onAdd(name, url, "registry")
       setName("")
       setUrl("")
-      setType("public")
       onOpenChange(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add registry")
@@ -84,19 +82,6 @@ export function AddRegistryDialog({
               onChange={(e) => setUrl(e.target.value)}
               required
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="type">Registry Type</Label>
-            <select
-              id="type"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            >
-              <option value="public">Public</option>
-              <option value="private">Private</option>
-            </select>
           </div>
 
           {error && (

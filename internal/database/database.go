@@ -182,9 +182,10 @@ func GetServers() ([]models.ServerDetail, error) {
 	}
 
 	rows, err := DB.Query(`
-		SELECT id, registry_id, name, title, description, version, website_url, installed, data, created_at, updated_at 
-		FROM servers 
-		ORDER BY name, version DESC
+		SELECT s.id, s.registry_id, r.name, s.name, s.title, s.description, s.version, s.website_url, s.installed, s.data, s.created_at, s.updated_at 
+		FROM servers s
+		JOIN registries r ON s.registry_id = r.id
+		ORDER BY s.name, s.version DESC
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query servers: %w", err)
@@ -196,7 +197,7 @@ func GetServers() ([]models.ServerDetail, error) {
 	var servers []models.ServerDetail
 	for rows.Next() {
 		var s models.ServerDetail
-		if err := rows.Scan(&s.ID, &s.RegistryID, &s.Name, &s.Title, &s.Description, &s.Version, &s.WebsiteURL, &s.Installed, &s.Data, &s.CreatedAt, &s.UpdatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.RegistryID, &s.RegistryName, &s.Name, &s.Title, &s.Description, &s.Version, &s.WebsiteURL, &s.Installed, &s.Data, &s.CreatedAt, &s.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan server: %w", err)
 		}
 		servers = append(servers, s)
@@ -210,6 +211,32 @@ func GetServers() ([]models.ServerDetail, error) {
 	return servers, nil
 }
 
+// GetServerByName returns a server by name
+func GetServerByName(name string) (*models.ServerDetail, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var s models.ServerDetail
+	err := DB.QueryRow(`
+		SELECT s.id, s.registry_id, r.name, s.name, s.title, s.description, s.version, s.website_url, s.installed, s.data, s.created_at, s.updated_at 
+		FROM servers s
+		JOIN registries r ON s.registry_id = r.id
+		WHERE s.name = ?
+		ORDER BY s.version DESC
+		LIMIT 1
+	`, name).Scan(&s.ID, &s.RegistryID, &s.RegistryName, &s.Name, &s.Title, &s.Description, &s.Version, &s.WebsiteURL, &s.Installed, &s.Data, &s.CreatedAt, &s.UpdatedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to query server: %w", err)
+	}
+
+	return &s, nil
+}
+
 // GetSkills returns all skills from connected registries
 func GetSkills() ([]models.Skill, error) {
 	if DB == nil {
@@ -217,9 +244,10 @@ func GetSkills() ([]models.Skill, error) {
 	}
 
 	rows, err := DB.Query(`
-		SELECT id, registry_id, name, COALESCE(title, ''), description, version, COALESCE(category, ''), installed, data, created_at, updated_at 
-		FROM skills 
-		ORDER BY name, version DESC
+		SELECT sk.id, sk.registry_id, r.name, sk.name, COALESCE(sk.title, ''), sk.description, sk.version, COALESCE(sk.category, ''), sk.installed, sk.data, sk.created_at, sk.updated_at 
+		FROM skills sk
+		JOIN registries r ON sk.registry_id = r.id
+		ORDER BY sk.name, sk.version DESC
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query skills: %w", err)
@@ -231,7 +259,7 @@ func GetSkills() ([]models.Skill, error) {
 	var skills []models.Skill
 	for rows.Next() {
 		var s models.Skill
-		if err := rows.Scan(&s.ID, &s.RegistryID, &s.Name, &s.Title, &s.Description, &s.Version, &s.Category, &s.Installed, &s.Data, &s.CreatedAt, &s.UpdatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.RegistryID, &s.RegistryName, &s.Name, &s.Title, &s.Description, &s.Version, &s.Category, &s.Installed, &s.Data, &s.CreatedAt, &s.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan skill: %w", err)
 		}
 		skills = append(skills, s)
@@ -243,6 +271,32 @@ func GetSkills() ([]models.Skill, error) {
 	}
 
 	return skills, nil
+}
+
+// GetSkillByName returns a skill by name
+func GetSkillByName(name string) (*models.Skill, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var s models.Skill
+	err := DB.QueryRow(`
+		SELECT sk.id, sk.registry_id, r.name, sk.name, COALESCE(sk.title, ''), sk.description, sk.version, COALESCE(sk.category, ''), sk.installed, sk.data, sk.created_at, sk.updated_at 
+		FROM skills sk
+		JOIN registries r ON sk.registry_id = r.id
+		WHERE sk.name = ?
+		ORDER BY sk.version DESC
+		LIMIT 1
+	`, name).Scan(&s.ID, &s.RegistryID, &s.RegistryName, &s.Name, &s.Title, &s.Description, &s.Version, &s.Category, &s.Installed, &s.Data, &s.CreatedAt, &s.UpdatedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to query skill: %w", err)
+	}
+
+	return &s, nil
 }
 
 // GetAgents returns all agents from connected registries
@@ -330,6 +384,29 @@ func AddRegistry(name, url, registryType string) error {
 	}
 
 	return nil
+}
+
+// GetRegistryByName returns a registry by name
+func GetRegistryByName(name string) (*models.Registry, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var r models.Registry
+	err := DB.QueryRow(`
+		SELECT id, name, url, type, created_at, updated_at 
+		FROM registries 
+		WHERE name = ?
+	`, name).Scan(&r.ID, &r.Name, &r.URL, &r.Type, &r.CreatedAt, &r.UpdatedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to query registry: %w", err)
+	}
+
+	return &r, nil
 }
 
 // RemoveRegistry removes a registry

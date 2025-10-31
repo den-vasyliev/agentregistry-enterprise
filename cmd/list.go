@@ -10,7 +10,7 @@ import (
 
 	"github.com/agentregistry-dev/agentregistry/internal/database"
 	"github.com/agentregistry-dev/agentregistry/internal/models"
-	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/agentregistry-dev/agentregistry/internal/printer"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,6 @@ var listCmd = &cobra.Command{
 
 		switch resourceType {
 		case "mcp":
-			fmt.Println("Listing MCP servers:")
 			servers, err := database.GetServers()
 			if err != nil {
 				log.Fatalf("Failed to get servers: %v", err)
@@ -48,7 +47,6 @@ var listCmd = &cobra.Command{
 				fmt.Println("  No MCP servers available")
 				fmt.Println("  Connect a registry first: arctl connect <url> <name>")
 			} else {
-				fmt.Printf("  Found %d servers total\n\n", len(servers))
 				displayPaginatedServers(servers, listPageSize, listAll)
 			}
 		case "skill":
@@ -73,23 +71,19 @@ var listCmd = &cobra.Command{
 				fmt.Println("No registries connected")
 				fmt.Println("Connect a registry: arctl connect <url> <name>")
 			} else {
-				fmt.Printf("\nConnected Registries (%d)\n\n", len(registries))
-				t := table.NewWriter()
-				t.SetOutputMirror(os.Stdout)
-				t.AppendHeader(table.Row{"Name", "URL", "Type", "Added"})
+				t := printer.NewTablePrinter(os.Stdout)
+				t.SetHeaders("Name", "URL", "Type", "Age")
 
 				for _, r := range registries {
-					t.AppendRow(table.Row{
+					t.AddRow(
 						r.Name,
 						r.URL,
 						r.Type,
-						r.CreatedAt.Format("2006-01-02 15:04"),
-					})
+						printer.FormatAge(r.CreatedAt),
+					)
 				}
 
-				t.SetStyle(table.StyleLight)
 				t.Render()
-				fmt.Println()
 			}
 		default:
 			fmt.Printf("Unknown resource type: %s\n", resourceType)
@@ -228,18 +222,14 @@ type ServerData struct {
 }
 
 func printServersTable(servers []models.ServerDetail) {
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Name", "Title", "Version", "Transport", "Status"})
+	t := printer.NewTablePrinter(os.Stdout)
+	t.SetHeaders("Name", "Title", "Version", "Transport", "Status")
 
 	for _, s := range servers {
-		title := s.Title
-		if title == "" {
-			title = "-"
-		}
+		title := printer.EmptyValueOrDefault(s.Title, "<none>")
 
 		// Parse the server data to extract transport type
-		transport := "-"
+		transport := "<none>"
 		var serverData ServerData
 		if err := json.Unmarshal([]byte(s.Data), &serverData); err == nil {
 			if len(serverData.Packages) > 0 {
@@ -252,54 +242,36 @@ func printServersTable(servers []models.ServerDetail) {
 			}
 		}
 
-		status := "available"
-		if s.Installed {
-			status = "installed"
-		}
+		status := printer.FormatStatus(s.Installed)
 
-		t.AppendRow(table.Row{
-			truncateString(s.Name, 40),
-			truncateString(title, 30),
+		t.AddRow(
+			printer.TruncateString(s.Name, 40),
+			printer.TruncateString(title, 30),
 			s.Version,
 			transport,
 			status,
-		})
+		)
 	}
 
-	t.SetStyle(table.StyleLight)
 	t.Render()
-	fmt.Println()
 }
 
 func printSkillsTable(skills []models.Skill) {
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Name", "Description", "Version", "Status"})
+	t := printer.NewTablePrinter(os.Stdout)
+	t.SetHeaders("Name", "Description", "Version", "Status")
 
 	for _, s := range skills {
-		status := "available"
-		if s.Installed {
-			status = "installed"
-		}
+		status := printer.FormatStatus(s.Installed)
 
-		t.AppendRow(table.Row{
-			truncateString(s.Name, 40),
-			truncateString(s.Description, 50),
+		t.AddRow(
+			printer.TruncateString(s.Name, 40),
+			printer.TruncateString(s.Description, 50),
 			s.Version,
 			status,
-		})
+		)
 	}
 
-	t.SetStyle(table.StyleLight)
 	t.Render()
-	fmt.Println()
-}
-
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen-3] + "..."
 }
 
 func init() {
