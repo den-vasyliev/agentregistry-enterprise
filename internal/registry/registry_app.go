@@ -9,6 +9,7 @@ import (
 	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/database"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/importer"
+	"github.com/agentregistry-dev/agentregistry/internal/registry/runtime"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/service"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/telemetry"
 	"log"
@@ -85,6 +86,14 @@ func App(ctx context.Context) error {
 	defer func() {
 		if err := shutdownTelemetry(context.Background()); err != nil {
 			log.Printf("Failed to shutdown telemetry: %v", err)
+		}
+	}()
+
+	// Start installed MCP Servers
+	mgr := runtime.NewRuntimeManager(cfg.AgentGatewayPort, true)
+	go func() {
+		if err := mgr.StartMCPServers(); err != nil {
+			log.Printf("Failed to start MCP servers: %v", err)
 		}
 	}()
 
