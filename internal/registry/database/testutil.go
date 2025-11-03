@@ -66,7 +66,9 @@ func NewTestDB(t *testing.T) Database {
 	// Connect to postgres database
 	adminURI := "postgres://mcpregistry:mcpregistry@localhost:5432/postgres?sslmode=disable"
 	adminConn, err := pgx.Connect(ctx, adminURI)
-	require.NoError(t, err, "Failed to connect to PostgreSQL. Make sure PostgreSQL is running via: docker-compose up -d postgres")
+	if err != nil {
+		t.Skipf("PostgreSQL not available (this is expected on macOS GitHub runners). Skipping database tests. Error: %v", err)
+	}
 	defer func() { _ = adminConn.Close(ctx) }()
 
 	// Ensure template database exists with migrations
