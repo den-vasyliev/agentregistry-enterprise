@@ -26,7 +26,7 @@ type OpenAPISpec struct {
 
 func TestOpenAPIEndpointCompliance(t *testing.T) {
 	// Load reference schema from docs
-	referenceSchemaPath := filepath.Join("..", "..", "docs", "reference", "api", "openapi.yaml")
+	referenceSchemaPath := filepath.Join("openapi.yaml")
 	referenceData, err := os.ReadFile(referenceSchemaPath)
 	require.NoError(t, err, "Failed to read reference OpenAPI schema at %s", referenceSchemaPath)
 

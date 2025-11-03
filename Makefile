@@ -128,8 +128,8 @@ postgres-start:
 	@docker run -d \
 		--name mcp-registry-postgres \
 		-e POSTGRES_DB=mcp-registry \
-		-e POSTGRES_USER=postgres \
-		-e POSTGRES_PASSWORD=postgres \
+		-e POSTGRES_USER=mcpregistry \
+		-e POSTGRES_PASSWORD=mcpregistry \
 		-p 5432:5432 \
 		postgres:16-alpine || (echo "Container may already exist. Use 'make postgres-stop' first." && exit 1)
 	@echo "✓ PostgreSQL is starting on port 5432"
