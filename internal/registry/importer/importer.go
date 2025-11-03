@@ -64,7 +64,7 @@ func (s *Service) SetGitHubToken(token string) {
 // ImportFromPath imports seed data from various sources:
 // 1. Local file paths (*.json files) - expects ServerJSON array format
 // 2. Direct HTTP URLs to seed.json files - expects ServerJSON array format
-// 3. Registry root URLs (automatically appends /v0/servers and paginates)
+// 3. Registry API endpoints (e.g., /v0/servers, /v0.1/servers) - handles pagination automatically
 func (s *Service) ImportFromPath(ctx context.Context, path string) error {
 	servers, err := s.readSeedFile(ctx, path)
 	if err != nil {
@@ -125,7 +125,7 @@ func (s *Service) readSeedFile(ctx context.Context, path string) ([]*apiv0.Serve
 
 	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
 		// Handle HTTP URLs
-		if strings.HasSuffix(path, "/v0/servers") || strings.Contains(path, "/v0/servers") {
+		if strings.HasSuffix(path, "/servers") {
 			// This is a registry API endpoint - fetch paginated data
 			return s.fetchFromRegistryAPI(ctx, path)
 		}
@@ -200,7 +200,7 @@ func (s *Service) fetchFromHTTP(ctx context.Context, url string) ([]byte, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch from HTTP: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP request failed with status: %d", resp.StatusCode)
@@ -326,7 +326,7 @@ func (s *Service) fetchGitHubStars(ctx context.Context, owner, repo string) (int
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return 0, fmt.Errorf("github api status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))

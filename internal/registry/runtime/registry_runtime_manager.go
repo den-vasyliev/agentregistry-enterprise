@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/agentregistry-dev/agentregistry/cmd"
+	"log"
+	"os"
+	"path/filepath"
+
 	"github.com/agentregistry-dev/agentregistry/internal/database"
+	"github.com/agentregistry-dev/agentregistry/internal/models"
 	"github.com/agentregistry-dev/agentregistry/internal/runtime"
 	"github.com/agentregistry-dev/agentregistry/internal/runtime/translation/dockercompose"
 	"github.com/agentregistry-dev/agentregistry/internal/runtime/translation/registry"
 	apiv0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
-	"log"
-	"os"
-	"path/filepath"
 )
 
 type RuntimeManager interface {
@@ -67,7 +68,7 @@ func (m *runtimeManager) StartMCPServers() error {
 	var runRequests []*registry.MCPServerRunRequest
 	for _, server := range servers {
 		// Parse the server data
-		var combinedData cmd.CombinedServerData
+		var combinedData models.CombinedServerData
 		if err := json.Unmarshal([]byte(server.Data), &combinedData); err != nil {
 			log.Printf("Warning: Failed to parse server data for %s: %v", server.Name, err)
 			continue

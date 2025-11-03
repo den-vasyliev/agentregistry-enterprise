@@ -60,7 +60,7 @@ func ValidateNuGet(ctx context.Context, pkg model.Package, serverName string) er
 	if err != nil {
 		return fmt.Errorf("failed to fetch README from NuGet: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusOK {
 		// Check README content

@@ -67,7 +67,7 @@ func ValidateMCPB(ctx context.Context, pkg model.Package, _ string) error {
 	if err != nil {
 		return fmt.Errorf("failed to verify MCPB package accessibility: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("MCPB package '%s' is not publicly accessible (status: %d)", pkg.Identifier, resp.StatusCode)

@@ -40,7 +40,7 @@ func TestImportService_LocalFile(t *testing.T) {
 
 	err = os.WriteFile(tempFile, jsonData, 0600)
 	require.NoError(t, err)
-	defer os.Remove(tempFile)
+	defer func() { _ = os.Remove(tempFile) }()
 
 	// Create registry service
 	testDB := database.NewTestDB(t)
@@ -216,7 +216,7 @@ func TestImportService_ErrorHandling(t *testing.T) {
 	invalidJSON := []byte("{invalid json}")
 	tempFile, err := os.CreateTemp("", "invalid-*.json")
 	require.NoError(t, err)
-	defer os.Remove(tempFile.Name())
+	defer func() { _ = os.Remove(tempFile.Name()) }()
 	err = os.WriteFile(tempFile.Name(), invalidJSON, 0600)
 	require.NoError(t, err)
 

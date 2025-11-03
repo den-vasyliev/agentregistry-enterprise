@@ -48,7 +48,7 @@ func ensureTemplateDB(ctx context.Context, adminConn *pgx.Conn) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to template database: %w", err)
 	}
-	defer templateDB.Close()
+	defer func() { _ = templateDB.Close() }()
 
 	// Migrations run automatically in NewPostgreSQL
 	return nil
@@ -67,7 +67,7 @@ func NewTestDB(t *testing.T) Database {
 	adminURI := "postgres://mcpregistry:mcpregistry@localhost:5432/postgres?sslmode=disable"
 	adminConn, err := pgx.Connect(ctx, adminURI)
 	require.NoError(t, err, "Failed to connect to PostgreSQL. Make sure PostgreSQL is running via: docker-compose up -d postgres")
-	defer adminConn.Close(ctx)
+	defer func() { _ = adminConn.Close(ctx) }()
 
 	// Ensure template database exists with migrations
 	err = ensureTemplateDB(ctx, adminConn)

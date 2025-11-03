@@ -120,7 +120,7 @@ func (h *GitHubHandler) getGitHubUser(ctx context.Context, token string) (*GitHu
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -149,7 +149,7 @@ func (h *GitHubHandler) getGitHubUserOrgs(ctx context.Context, username string, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user organizations: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)

@@ -65,7 +65,7 @@ func ValidatePyPI(ctx context.Context, pkg model.Package, serverName string) err
 	if err != nil {
 		return fmt.Errorf("failed to fetch package metadata from PyPI: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("PyPI package '%s' not found (status: %d)", pkg.Identifier, resp.StatusCode)

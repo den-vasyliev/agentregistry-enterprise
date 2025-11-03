@@ -1,9 +1,10 @@
 package config
 
 import (
+	"log"
+
 	env "github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
-	"log"
 )
 
 // Config holds the application configuration

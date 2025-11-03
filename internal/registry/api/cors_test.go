@@ -26,6 +26,9 @@ func TestCORSHeaders(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := config.NewConfig()
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
 	cfg.JWTPrivateKey = hex.EncodeToString(testSeed)
 
 	// Create test services

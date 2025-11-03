@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -47,7 +48,11 @@ var importCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to connect to database: %w", err)
 		}
-		defer db.Close()
+		defer func() {
+			if closeErr := db.Close(); closeErr != nil {
+				log.Printf("Warning: failed to close database: %v", closeErr)
+			}
+		}()
 
 		registryService := service.NewRegistryService(db, cfg)
 

@@ -68,7 +68,7 @@ func (f *DefaultHTTPKeyFetcher) FetchKey(ctx context.Context, domain string) (st
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch key: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("HTTP %d: failed to fetch key from %s", resp.StatusCode, url)

@@ -4,6 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/agentregistry-dev/agentregistry/internal/registry/api"
 	v0 "github.com/agentregistry-dev/agentregistry/internal/registry/api/handlers/v0"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
@@ -12,12 +19,6 @@ import (
 	"github.com/agentregistry-dev/agentregistry/internal/registry/runtime"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/service"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/telemetry"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 // Version info for the MCP Registry application
@@ -33,7 +34,7 @@ var (
 	GitCommit = "unknown"
 )
 
-func App(ctx context.Context) error {
+func App(_ context.Context) error {
 	cfg := config.NewConfig()
 
 	// Create a context with timeout for PostgreSQL connection

@@ -67,7 +67,7 @@ func ValidateNPM(ctx context.Context, pkg model.Package, serverName string) erro
 	if err != nil {
 		return fmt.Errorf("failed to fetch package metadata from NPM: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("NPM package '%s' not found (status: %d)", pkg.Identifier, resp.StatusCode)
