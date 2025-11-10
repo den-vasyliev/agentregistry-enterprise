@@ -22,8 +22,8 @@ var rootCmd = &cobra.Command{
 			fmt.Println("agent registry uses docker compose to start the server and the agent gateway.")
 			return fmt.Errorf("docker compose is not available")
 		}
-		if !daemon.IsRunning(verbose) {
-			if err := daemon.Start(verbose); err != nil {
+		if !daemon.IsRunning() {
+			if err := daemon.Start(); err != nil {
 				return fmt.Errorf("failed to start daemon: %w", err)
 			}
 			fmt.Println("✓ Daemon started successfully")

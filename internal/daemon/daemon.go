@@ -13,19 +13,11 @@ import (
 //go:embed docker-compose.yml
 var dockerComposeYaml string
 
-func Start(verbose bool) error {
+func Start() error {
 	// Pipe the docker-compose.yml via stdin to docker compose
 	cmd := exec.Command("docker", "compose", "-p", "agentregistry", "-f", "-", "up", "-d", "--wait")
 	cmd.Stdin = strings.NewReader(dockerComposeYaml)
-	cmd.Stdout = os.Stdout
-	if verbose {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-	} else {
-		cmd.Stdout = nil
-		cmd.Stderr = nil
-	}
-	cmd.Env = append(os.Environ(), fmt.Sprintf("VERSION=%s", version.Version), "DOCKER_REGISTRY=localhost:5001")
+	cmd.Env = append(os.Environ(), fmt.Sprintf("VERSION=%s", version.Version), fmt.Sprintf("DOCKER_REGISTRY=%s", version.DockerRegistry))
 	if byt, err := cmd.CombinedOutput(); err != nil {
 		fmt.Printf("failed to start docker compose: %v, output: %s", err, string(byt))
 		return fmt.Errorf("failed to start docker compose: %w", err)
@@ -33,17 +25,10 @@ func Start(verbose bool) error {
 	return nil
 }
 
-func IsRunning(verbose bool) bool {
+func IsRunning() bool {
 	cmd := exec.Command("docker", "compose", "-p", "agentregistry", "-f", "-", "ps")
 	cmd.Stdin = strings.NewReader(dockerComposeYaml)
-	cmd.Env = append(os.Environ(), fmt.Sprintf("VERSION=%s", version.Version), "DOCKER_REGISTRY=localhost:5001")
-	if verbose {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-	} else {
-		cmd.Stdout = nil
-		cmd.Stderr = nil
-	}
+	cmd.Env = append(os.Environ(), fmt.Sprintf("VERSION=%s", version.Version), fmt.Sprintf("DOCKER_REGISTRY=%s", version.DockerRegistry))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("failed to check if daemon is running: %v, output: %s", err, string(output))
