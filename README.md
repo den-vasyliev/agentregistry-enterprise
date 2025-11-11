@@ -81,7 +81,7 @@ graph TB
 
 ```bash
 # Install via script (recommended)
-curl -fsSL https://raw.githubusercontent.com/agentregistry-dev/agentregistry/main/scripts/get-arctl | sh
+curl -fsSL https://raw.githubusercontent.com/agentregistry-dev/agentregistry/main/scripts/get-arctl | bash
 
 # Or download binary directly from releases
 # https://github.com/agentregistry-dev/agentregistry/releases
