@@ -1,5 +1,7 @@
 <div align="center">
-  <img src="img/agentregistry - Light on Transparent Background.svg" alt="Agent Registry" width="400">
+  <picture>
+    <img alt="agentregistry" src="./img/agentregistry-logo.svg" height="150"/>
+  </picture>
   
   [![Go Version](https://img.shields.io/badge/Go-1.25%2B-blue.svg)](https://golang.org/doc/install)
   [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -20,6 +22,13 @@ Agent Registry brings governance and control to AI artifacts and infrastructure,
 - **🔒 Control and Governance**: Selectively  and control custom collection of artifacts
 - **📊 Data Enrichment**: Automatically validate and score ingested data for insights
 - **🌐 Unify AI Infrastructure**: Deploy and access artifacts anywhere
+
+
+## See it in action
+
+Learn how to create an Anthropic Skill, publish it to agentregistry, and use it in Claude Code
+
+[![Video](https://img.youtube.com/vi/l6QicyGg46A/maxresdefault.jpg)](https://www.youtube.com/watch?v=l6QicyGg46A)
 
 ##  Agent Registry Architecture
 
@@ -55,7 +64,7 @@ curl -fsSL https://raw.githubusercontent.com/agentregistry-dev/agentregistry/mai
 
 ```bash
 # Start the registry server and look for available MCP servers
-arctl list
+arctl list -A
 
 # The first time the CLI runs it will automatically start the registry server daemon and import the built-in seed data.
 ```
