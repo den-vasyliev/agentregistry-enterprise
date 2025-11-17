@@ -332,8 +332,8 @@ func (c *Client) PublishAgent(agent *models.AgentJSON) (*models.AgentResponse, e
 	return &resp, err
 }
 
-// PublishServer publishes a server to the registry
-func (c *Client) PublishServer(server *v0.ServerJSON) (*v0.ServerResponse, error) {
+// PublishMCPServer publishes an mcp server to the registry
+func (c *Client) PublishMCPServer(server *v0.ServerJSON) (*v0.ServerResponse, error) {
 	var resp v0.ServerResponse
 	err := c.doJsonRequest(http.MethodPost, "/publish", server, &resp)
 	return &resp, err
