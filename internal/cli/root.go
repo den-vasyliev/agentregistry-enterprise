@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/agentregistry-dev/agentregistry/internal/cli/agent"
 	"github.com/agentregistry-dev/agentregistry/internal/cli/mcp"
+	"github.com/agentregistry-dev/agentregistry/internal/cli/skill"
 	"github.com/agentregistry-dev/agentregistry/internal/client"
 	"github.com/agentregistry-dev/agentregistry/internal/daemon"
 	"github.com/spf13/cobra"
@@ -12,8 +14,8 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "arctl",
-	Short: "AI Registry and Runtime",
-	Long:  `arctl is a CLI tool for managing MCP servers, skills, and registries.`,
+	Short: "Agent Registry CLI",
+	Long:  `arctl is a CLI tool for managing agents, MCP servers and skills.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Check if docker compose is available
 		if !daemon.IsDockerComposeAvailable() {
@@ -34,6 +36,8 @@ var rootCmd = &cobra.Command{
 		}
 		APIClient = c
 		mcp.SetAPIClient(APIClient)
+		agent.SetAPIClient(APIClient)
+		skill.SetAPIClient(APIClient)
 		return nil
 	},
 }
@@ -52,4 +56,6 @@ func Execute() {
 func init() {
 	// Add subcommands
 	rootCmd.AddCommand(mcp.McpCmd)
+	rootCmd.AddCommand(agent.AgentCmd)
+	rootCmd.AddCommand(skill.SkillCmd)
 }
