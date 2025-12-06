@@ -149,9 +149,6 @@ func (r *agentRegistryRuntime) ensureLocalRuntime(
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to start docker compose: %w", err)
 	}
-
-	fmt.Println("Docker containers started")
-
 	return nil
 }
 
