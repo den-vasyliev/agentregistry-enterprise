@@ -12,10 +12,11 @@ import (
 	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/frameworks/common"
 	"github.com/agentregistry-dev/agentregistry/internal/utils"
 	"github.com/agentregistry-dev/agentregistry/internal/version"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 )
 
 // LoadManifest loads the agent manifest from the project directory.
-func LoadManifest(projectDir string) (*common.AgentManifest, error) {
+func LoadManifest(projectDir string) (*models.AgentManifest, error) {
 	manager := common.NewManifestManager(projectDir)
 	return manager.Load()
 }
@@ -56,7 +57,7 @@ func defaultRegistry() string {
 }
 
 // RegenerateMcpTools updates the generated mcp_tools.py file based on manifest state.
-func RegenerateMcpTools(projectDir string, manifest *common.AgentManifest, verbose bool) error {
+func RegenerateMcpTools(projectDir string, manifest *models.AgentManifest, verbose bool) error {
 	if manifest == nil || manifest.Name == "" {
 		return fmt.Errorf("manifest missing name")
 	}
@@ -74,7 +75,7 @@ func RegenerateMcpTools(projectDir string, manifest *common.AgentManifest, verbo
 	}
 
 	rendered, err := gen.RenderTemplate(string(templateBytes), struct {
-		McpServers []common.McpServerType
+		McpServers []models.McpServerType
 	}{
 		McpServers: manifest.McpServers,
 	})
@@ -93,7 +94,7 @@ func RegenerateMcpTools(projectDir string, manifest *common.AgentManifest, verbo
 }
 
 // RegenerateDockerCompose rewrites docker-compose.yaml using the embedded template.
-func RegenerateDockerCompose(projectDir string, manifest *common.AgentManifest, version string, verbose bool) error {
+func RegenerateDockerCompose(projectDir string, manifest *models.AgentManifest, version string, verbose bool) error {
 	if manifest == nil {
 		return fmt.Errorf("manifest is required")
 	}
@@ -120,7 +121,7 @@ func RegenerateDockerCompose(projectDir string, manifest *common.AgentManifest, 
 		ModelName         string
 		TelemetryEndpoint string
 		EnvVars           []string
-		McpServers        []common.McpServerType
+		McpServers        []models.McpServerType
 	}{
 		Name:              manifest.Name,
 		Version:           sanitizedVersion,
@@ -147,11 +148,11 @@ func RegenerateDockerCompose(projectDir string, manifest *common.AgentManifest, 
 }
 
 // EnvVarsFromManifest extracts environment variables referenced in MCP headers.
-func EnvVarsFromManifest(manifest *common.AgentManifest) []string {
+func EnvVarsFromManifest(manifest *models.AgentManifest) []string {
 	return extractEnvVarsFromHeaders(manifest.McpServers)
 }
 
-func extractEnvVarsFromHeaders(servers []common.McpServerType) []string {
+func extractEnvVarsFromHeaders(servers []models.McpServerType) []string {
 	envSet := map[string]struct{}{}
 	re := regexp.MustCompile(`\$\{([^}]+)\}`)
 
@@ -193,7 +194,7 @@ type mcpTarget struct {
 // EnsureMcpServerDirectories creates config.yaml and Dockerfile for command-type MCP servers.
 // For registry-resolved servers, srv.Build contains the folder path (e.g., "registry/<name>").
 // For locally-defined servers, srv.Build is empty and srv.Name is used as the folder.
-func EnsureMcpServerDirectories(projectDir string, manifest *common.AgentManifest, verbose bool) error {
+func EnsureMcpServerDirectories(projectDir string, manifest *models.AgentManifest, verbose bool) error {
 	if manifest == nil {
 		return nil
 	}

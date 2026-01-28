@@ -19,6 +19,7 @@ import (
 	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/tui"
 	agentutils "github.com/agentregistry-dev/agentregistry/internal/cli/agent/utils"
 	"github.com/agentregistry-dev/agentregistry/internal/utils"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 	"github.com/spf13/cobra"
 	a2aclient "trpc.group/trpc-go/trpc-a2a-go/client"
 	"trpc.group/trpc-go/trpc-a2a-go/protocol"
@@ -107,7 +108,7 @@ func runFromDirectory(ctx context.Context, projectDir string) error {
 			}
 		}
 
-		var registryResolvedServers []common.McpServerType
+		var registryResolvedServers []models.McpServerType
 		for _, srv := range manifest.McpServers {
 			if srv.Type == "command" && strings.HasPrefix(srv.Build, "registry/") {
 				registryResolvedServers = append(registryResolvedServers, srv)
@@ -172,7 +173,7 @@ func runFromDirectory(ctx context.Context, projectDir string) error {
 }
 
 // hasRegistryServers checks if the manifest has any registry-type MCP servers.
-func hasRegistryServers(manifest *common.AgentManifest) bool {
+func hasRegistryServers(manifest *models.AgentManifest) bool {
 	for _, srv := range manifest.McpServers {
 		if srv.Type == "registry" {
 			return true
@@ -186,7 +187,7 @@ func hasRegistryServers(manifest *common.AgentManifest) bool {
 //     are already prepared (including cleanup), so this function skips resolution/cleanup.
 //   - when overrides is nil, this function resolves registry MCP servers (if any), builds them,
 //     renders compose, and creates mcp-servers.json for registry runs.
-func runFromManifest(ctx context.Context, manifest *common.AgentManifest, version string, overrides *runContext) error {
+func runFromManifest(ctx context.Context, manifest *models.AgentManifest, version string, overrides *runContext) error {
 	if manifest == nil {
 		return fmt.Errorf("agent manifest is required")
 	}
@@ -234,7 +235,7 @@ func runFromManifest(ctx context.Context, manifest *common.AgentManifest, versio
 			}
 
 			// Separate servers that need building (npm/pypi) from those that don't (OCI)
-			var serversToBuild []common.McpServerType
+			var serversToBuild []models.McpServerType
 			for _, srv := range manifest.McpServers {
 				if srv.Type == "command" && strings.HasPrefix(srv.Build, "registry/") {
 					serversToBuild = append(serversToBuild, srv)
@@ -328,7 +329,7 @@ type runContext struct {
 	workDir     string
 }
 
-func renderComposeFromManifest(manifest *common.AgentManifest, version string) ([]byte, error) {
+func renderComposeFromManifest(manifest *models.AgentManifest, version string) ([]byte, error) {
 	gen := python.NewPythonGenerator()
 	templateBytes, err := gen.ReadTemplateFile("docker-compose.yaml.tmpl")
 	if err != nil {
@@ -350,7 +351,7 @@ func renderComposeFromManifest(manifest *common.AgentManifest, version string) (
 		ModelProvider string
 		ModelName     string
 		EnvVars       []string
-		McpServers    []common.McpServerType
+		McpServers    []models.McpServerType
 	}{
 		Name:          manifest.Name,
 		Version:       sanitizedVersion,
@@ -366,7 +367,7 @@ func renderComposeFromManifest(manifest *common.AgentManifest, version string) (
 	return []byte(rendered), nil
 }
 
-func runAgent(ctx context.Context, composeData []byte, manifest *common.AgentManifest, workDir string) error {
+func runAgent(ctx context.Context, composeData []byte, manifest *models.AgentManifest, workDir string) error {
 	if err := validateAPIKey(manifest.ModelProvider); err != nil {
 		return err
 	}
@@ -497,7 +498,7 @@ func validateAPIKey(modelProvider string) error {
 
 // buildRegistryResolvedServers builds Docker images for MCP servers that were resolved from the registry.
 // This is similar to buildMCPServers, but for registry-resolved servers at runtime.
-func buildRegistryResolvedServers(tempDir string, manifest *common.AgentManifest, verbose bool) error {
+func buildRegistryResolvedServers(tempDir string, manifest *models.AgentManifest, verbose bool) error {
 	if manifest == nil {
 		return nil
 	}

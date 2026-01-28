@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agentregistry-dev/agentregistry/internal/registry/auth"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/auth"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	"go.opentelemetry.io/otel/attribute"
@@ -131,7 +131,8 @@ func handle404(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewHumaAPI creates a new Huma API with all routes registered
-func NewHumaAPI(cfg *config.Config, registry service.RegistryService, mux *http.ServeMux, metrics *telemetry.Metrics, versionInfo *v0.VersionBody, uiHandler http.Handler) huma.API {
+// Note: authz is handled at the DB/service layer, not at the API layer.
+func NewHumaAPI(cfg *config.Config, registry service.RegistryService, mux *http.ServeMux, metrics *telemetry.Metrics, versionInfo *v0.VersionBody, uiHandler http.Handler, authnProvider auth.AuthnProvider) huma.API {
 	// Create Huma API configuration
 	humaConfig := huma.DefaultConfig("Official MCP Registry", "1.0.0")
 	humaConfig.Info.Description = "A community driven registry service for Model Context Protocol (MCP) servers.\n\n[GitHub repository](https://github.com/modelcontextprotocol/registry) | [Documentation](https://github.com/modelcontextprotocol/registry/tree/main/docs)"
@@ -139,12 +140,11 @@ func NewHumaAPI(cfg *config.Config, registry service.RegistryService, mux *http.
 	humaConfig.CreateHooks = []func(huma.Config) huma.Config{}
 
 	// Create a new API using humago adapter for standard library
-	jwtManager := auth.NewJWTManager(cfg)
 	api := humago.New(mux, humaConfig)
-	authz := auth.Authorizer{Authz: nil}
-	if false {
-		authz = auth.Authorizer{Authz: jwtManager}
-		api.UseMiddleware(auth.AuthnMiddleware(jwtManager))
+
+	// Add authn middleware if configured
+	if authnProvider != nil {
+		api.UseMiddleware(auth.AuthnMiddleware(authnProvider))
 	}
 
 	// Add OpenAPI tag metadata with descriptions
@@ -193,7 +193,7 @@ func NewHumaAPI(cfg *config.Config, registry service.RegistryService, mux *http.
 	))
 
 	// Register all API routes (public and admin) for all versions
-	RegisterRoutes(api, authz, cfg, registry, metrics, versionInfo)
+	RegisterRoutes(api, cfg, registry, metrics, versionInfo)
 
 	// Add /metrics for Prometheus metrics using promhttp
 	mux.Handle("/metrics", metrics.PrometheusHandler())

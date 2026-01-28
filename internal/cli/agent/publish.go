@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/frameworks/common"
-	"github.com/agentregistry-dev/agentregistry/internal/models"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 	"github.com/kagent-dev/kagent/go/cli/config"
 	"github.com/modelcontextprotocol/registry/pkg/model"
 	"github.com/spf13/cobra"

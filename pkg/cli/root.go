@@ -24,6 +24,10 @@ import (
 type CLIOptions struct {
 	// DaemonManager handles daemon lifecycle. If nil, uses default.
 	DaemonManager types.DaemonManager
+
+	// AuthnProvider provides CLI-specific authentication.
+	// If nil, uses ARCTL_API_TOKEN env var.
+	AuthnProvider types.CLIAuthnProvider
 }
 
 var cliOptions CLIOptions
@@ -63,10 +67,21 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		// Get authentication token if no token override was provided
+		if token == "" && cliOptions.AuthnProvider != nil {
+			var err error
+			token, err = cliOptions.AuthnProvider.Authenticate(cmd.Context())
+			if err != nil {
+				return fmt.Errorf("CLI authentication failed: %w", err)
+			}
+		}
+
+		// Check if local registry is running and create API client
 		c, err := client.NewClientWithConfig(baseURL, token)
 		if err != nil {
 			return fmt.Errorf("API client not initialized: %w", err)
 		}
+
 		APIClient = c
 		mcp.SetAPIClient(APIClient)
 		agent.SetAPIClient(APIClient)

@@ -12,21 +12,21 @@ import (
 	"syscall"
 	"time"
 
-	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	mcpregistry "github.com/agentregistry-dev/agentregistry/internal/mcp/registryserver"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/api"
 	v0 "github.com/agentregistry-dev/agentregistry/internal/registry/api/handlers/v0"
-	registryauth "github.com/agentregistry-dev/agentregistry/internal/registry/auth"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/database"
+	internaldb "github.com/agentregistry-dev/agentregistry/internal/registry/database"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/embeddings"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/importer"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/seed"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/service"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/telemetry"
 	"github.com/agentregistry-dev/agentregistry/internal/version"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/auth"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/database"
 
 	"github.com/agentregistry-dev/agentregistry/pkg/types"
 )
@@ -45,18 +45,51 @@ func App(_ context.Context, opts ...types.AppOptions) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Connect to PostgreSQL
-	db, err := database.NewPostgreSQL(ctx, cfg.DatabaseURL)
+	// Build auth providers from options (before database creation)
+	// Only create jwtManager if JWT is configured
+	var jwtManager *auth.JWTManager
+	if cfg.JWTPrivateKey != "" {
+		jwtManager = auth.NewJWTManager(cfg)
+	}
+
+	// Resolve authn provider: use provided, or default to JWT-based if configured
+	authnProvider := options.AuthnProvider
+	if authnProvider == nil && jwtManager != nil {
+		authnProvider = jwtManager
+	}
+
+	// Resolve authz provider: use provided, or default to public authz
+	authzProvider := options.AuthzProvider
+	if authzProvider == nil {
+		log.Println("Using public authz provider")
+		authzProvider = auth.NewPublicAuthzProvider(jwtManager)
+	}
+	authz := auth.Authorizer{Authz: authzProvider}
+
+	// Connect to PostgreSQL with authz (runs OSS migrations)
+	baseDB, err := internaldb.NewPostgreSQL(ctx, cfg.DatabaseURL, authz)
 	if err != nil {
 		return fmt.Errorf("failed to connect to PostgreSQL: %w", err)
 	}
 
-	// Store the PostgreSQL instance for later cleanup
+	// Allow implementors to wrap the database, and run additional migrations
+	var db database.Database = baseDB
+	if options.DatabaseFactory != nil {
+		db, err = options.DatabaseFactory(ctx, cfg.DatabaseURL, baseDB, authz)
+		if err != nil {
+			if err := baseDB.Close(); err != nil {
+				log.Printf("Error closing base database connection: %v", err)
+			}
+			return fmt.Errorf("failed to create extended database: %w", err)
+		}
+	}
+
+	// Store the database instance for later cleanup
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Printf("Error closing PostgreSQL connection: %v", err)
+			log.Printf("Error closing database connection: %v", err)
 		} else {
-			log.Println("PostgreSQL connection closed successfully")
+			log.Println("Database connection closed successfully")
 		}
 	}()
 
@@ -90,6 +123,8 @@ func App(_ context.Context, opts ...types.AppOptions) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			defer cancel()
 
+			ctx = auth.WithSystemContext(ctx)
+
 			if err := seed.ImportBuiltinSeedData(ctx, registryService); err != nil {
 				log.Printf("Failed to import builtin seed data: %v", err)
 			}
@@ -102,6 +137,8 @@ func App(_ context.Context, opts ...types.AppOptions) error {
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			defer cancel()
+
+			ctx = auth.WithSystemContext(ctx)
 
 			importerService := importer.NewService(registryService)
 			if embeddingProvider != nil {
@@ -140,6 +177,8 @@ func App(_ context.Context, opts ...types.AppOptions) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 
+		ctx = auth.WithSystemContext(ctx)
+
 		if err := registryService.ReconcileAll(ctx); err != nil {
 			log.Printf("Warning: Failed to reconcile deployments at startup: %v", err)
 			log.Println("Server will continue starting, but deployments may not be in sync")
@@ -149,7 +188,7 @@ func App(_ context.Context, opts ...types.AppOptions) error {
 	}
 
 	// Initialize HTTP server
-	baseServer := api.NewServer(cfg, registryService, metrics, versionInfo, options.UIHandler)
+	baseServer := api.NewServer(cfg, registryService, metrics, versionInfo, options.UIHandler, authnProvider)
 
 	var server types.Server
 	if options.HTTPServerFactory != nil {
@@ -164,34 +203,15 @@ func App(_ context.Context, opts ...types.AppOptions) error {
 
 	var mcpHTTPServer *http.Server
 	if cfg.MCPPort > 0 {
-		var jwtManager *registryauth.JWTManager
-		if cfg.JWTPrivateKey != "" {
-			jwtManager = registryauth.NewJWTManager(cfg)
-		}
-
-		mcpServer := mcpregistry.NewServer(cfg, registryService)
+		mcpServer := mcpregistry.NewServer(registryService)
 
 		var handler http.Handler = mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
 			return mcpServer
 		}, &mcp.StreamableHTTPOptions{})
 
-		if jwtManager != nil {
-			verifier := func(ctx context.Context, token string, req *http.Request) (*mcpauth.TokenInfo, error) {
-				claims, err := jwtManager.ValidateToken(ctx, token)
-				if err != nil {
-					return nil, fmt.Errorf("%w: %v", mcpauth.ErrInvalidToken, err)
-				}
-				exp := time.Unix(int64(claims.ExpiresAt.Unix()), 0)
-				return &mcpauth.TokenInfo{
-					Scopes:     []string{},
-					Expiration: exp,
-					UserID:     claims.AuthMethodSubject,
-					Extra: map[string]any{
-						"registry_claims": claims,
-					},
-				}, nil
-			}
-			handler = mcpauth.RequireBearerToken(verifier, nil)(handler)
+		// Set up authentication middleware if one is configured
+		if authnProvider != nil {
+			handler = mcpAuthnMiddleware(authnProvider)(handler)
 		}
 
 		addr := ":" + strconv.Itoa(int(cfg.MCPPort))
@@ -241,4 +261,22 @@ func App(_ context.Context, opts ...types.AppOptions) error {
 
 	log.Println("Server exiting")
 	return nil
+}
+
+// mcpAuthnMiddleware creates a middleware that uses the AuthnProvider to authenticate requests and add to session context.
+// this session context is used by the db + authz provider to check permissions.
+func mcpAuthnMiddleware(authn auth.AuthnProvider) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+
+			// authenticate using the configured provider
+			session, err := authn.Authenticate(ctx, r.Header.Get, r.URL.Query())
+			if err == nil && session != nil {
+				ctx = auth.AuthSessionTo(ctx, session)
+				r = r.WithContext(ctx)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }

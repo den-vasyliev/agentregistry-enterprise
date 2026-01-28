@@ -7,44 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 	"gopkg.in/yaml.v3"
 )
 
 const ManifestFileName = "agent.yaml"
-
-// AgentManifest represents the agent project configuration and metadata.
-type AgentManifest struct {
-	Name              string          `yaml:"agentName" json:"name"`
-	Image             string          `yaml:"image" json:"image"`
-	Language          string          `yaml:"language" json:"language"`
-	Framework         string          `yaml:"framework" json:"framework"`
-	ModelProvider     string          `yaml:"modelProvider" json:"modelProvider"`
-	ModelName         string          `yaml:"modelName" json:"modelName"`
-	Description       string          `yaml:"description" json:"description"`
-	Version           string          `yaml:"version,omitempty" json:"version,omitempty"`
-	TelemetryEndpoint string          `yaml:"telemetryEndpoint,omitempty" json:"telemetryEndpoint,omitempty"`
-	McpServers        []McpServerType `yaml:"mcpServers,omitempty" json:"mcpServers,omitempty"`
-	UpdatedAt         time.Time       `yaml:"updatedAt,omitempty" json:"updatedAt,omitempty"`
-}
-
-// McpServerType represents a single MCP server configuration.
-type McpServerType struct {
-	// MCP Server Type -- remote, command, registry
-	Type    string            `yaml:"type" json:"type"`
-	Name    string            `yaml:"name" json:"name"`
-	Image   string            `yaml:"image,omitempty" json:"image,omitempty"`
-	Build   string            `yaml:"build,omitempty" json:"build,omitempty"`
-	Command string            `yaml:"command,omitempty" json:"command,omitempty"`
-	Args    []string          `yaml:"args,omitempty" json:"args,omitempty"`
-	Env     []string          `yaml:"env,omitempty" json:"env,omitempty"`
-	URL     string            `yaml:"url,omitempty" json:"url,omitempty"`
-	Headers map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
-	// Registry MCP server fields -- these are translated into the appropriate fields above when the agent is ran or deployed
-	RegistryURL                string `yaml:"registryURL,omitempty" json:"registryURL,omitempty"`
-	RegistryServerName         string `yaml:"registryServerName,omitempty" json:"registryServerName,omitempty"`
-	RegistryServerVersion      string `yaml:"registryServerVersion,omitempty" json:"registryServerVersion,omitempty"`
-	RegistryServerPreferRemote bool   `yaml:"registryServerPreferRemote,omitempty" json:"registryServerPreferRemote,omitempty"`
-}
 
 // Manager handles loading and saving of agent manifests.
 type Manager struct {
@@ -59,7 +26,7 @@ func NewManifestManager(projectRoot string) *Manager {
 }
 
 // Load reads and parses the agent.yaml file.
-func (m *Manager) Load() (*AgentManifest, error) {
+func (m *Manager) Load() (*models.AgentManifest, error) {
 	manifestPath := filepath.Join(m.projectRoot, ManifestFileName)
 
 	data, err := os.ReadFile(manifestPath)
@@ -70,7 +37,7 @@ func (m *Manager) Load() (*AgentManifest, error) {
 		return nil, fmt.Errorf("failed to read agent.yaml: %w", err)
 	}
 
-	var manifest AgentManifest
+	var manifest models.AgentManifest
 	if err := yaml.Unmarshal(data, &manifest); err != nil {
 		return nil, fmt.Errorf("failed to parse agent.yaml: %w", err)
 	}
@@ -83,7 +50,7 @@ func (m *Manager) Load() (*AgentManifest, error) {
 }
 
 // Save writes the manifest to agent.yaml.
-func (m *Manager) Save(manifest *AgentManifest) error {
+func (m *Manager) Save(manifest *models.AgentManifest) error {
 	manifest.UpdatedAt = time.Now()
 
 	if err := m.Validate(manifest); err != nil {
@@ -104,7 +71,7 @@ func (m *Manager) Save(manifest *AgentManifest) error {
 }
 
 // Validate checks if the manifest is valid.
-func (m *Manager) Validate(manifest *AgentManifest) error {
+func (m *Manager) Validate(manifest *models.AgentManifest) error {
 	if manifest.Name == "" {
 		return fmt.Errorf("agent name is required")
 	}
@@ -159,8 +126,8 @@ func (m *Manager) Validate(manifest *AgentManifest) error {
 }
 
 // NewProjectManifest creates a new AgentManifest with the given values.
-func NewProjectManifest(agentName, language, framework, modelProvider, modelName, description string, mcpServers []McpServerType) *AgentManifest {
-	return &AgentManifest{
+func NewProjectManifest(agentName, language, framework, modelProvider, modelName, description string, mcpServers []models.McpServerType) *models.AgentManifest {
+	return &models.AgentManifest{
 		Name:          agentName,
 		Language:      language,
 		Framework:     framework,

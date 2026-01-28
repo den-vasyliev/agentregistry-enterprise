@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/agentregistry-dev/agentregistry/internal/models"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/database"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/service"
 	"github.com/agentregistry-dev/agentregistry/internal/runtime"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/auth"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/database"
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -42,8 +43,9 @@ type DeploymentsListResponse struct {
 
 // DeploymentInput represents path parameters for deployment operations
 type DeploymentInput struct {
-	ServerName string `path:"serverName" json:"serverName" doc:"URL-encoded server name" example:"io.github.user%2Fweather"`
-	Version    string `path:"version" json:"version" doc:"Version of the deployment to get" example:"1.0.0"`
+	ServerName   string `path:"serverName" json:"serverName" doc:"URL-encoded server name" example:"io.github.user%2Fweather"`
+	Version      string `path:"version" json:"version" doc:"Version of the deployment to get" example:"1.0.0"`
+	ResourceType string `query:"resourceType" json:"resourceType" doc:"Resource type (mcp, agent)" example:"mcp" enum:"mcp,agent"`
 }
 
 // DeploymentsListInput represents query parameters for listing deployments
@@ -75,6 +77,9 @@ func RegisterDeploymentsEndpoints(api huma.API, basePath string, registry servic
 
 		deployments, err := registry.GetDeployments(ctx, filter)
 		if err != nil {
+			if errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
+				return nil, huma.Error404NotFound("Not found")
+			}
 			return nil, huma.Error500InternalServerError("Failed to retrieve deployments", err)
 		}
 
@@ -108,9 +113,9 @@ func RegisterDeploymentsEndpoints(api huma.API, basePath string, registry servic
 			return nil, huma.Error400BadRequest("Invalid version encoding", err)
 		}
 
-		deployment, err := registry.GetDeploymentByNameAndVersion(ctx, serverName, version)
+		deployment, err := registry.GetDeploymentByNameAndVersion(ctx, serverName, version, input.ResourceType)
 		if err != nil {
-			if errors.Is(err, database.ErrNotFound) {
+			if errors.Is(err, database.ErrNotFound) || errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
 				return nil, huma.Error404NotFound("Deployment not found")
 			}
 			return nil, huma.Error500InternalServerError("Failed to retrieve deployment", err)
@@ -136,17 +141,17 @@ func RegisterDeploymentsEndpoints(api huma.API, basePath string, registry servic
 			resourceType = "mcp"
 		}
 
+		// Validate resource type
+		if resourceType != "mcp" && resourceType != "agent" {
+			return nil, huma.Error400BadRequest("Invalid resource type. Must be 'mcp' or 'agent'")
+		}
+
 		runtimeTarget := input.Body.Runtime
 		if runtimeTarget == "" {
 			runtimeTarget = "local"
 		}
 		if err := runtime.ValidateRuntime(runtimeTarget); err != nil {
 			return nil, huma.Error400BadRequest("Invalid runtime target", err)
-		}
-
-		// Validate resource type
-		if resourceType != "mcp" && resourceType != "agent" {
-			return nil, huma.Error400BadRequest("Invalid resource type. Must be 'mcp' or 'agent'")
 		}
 
 		var deployment *models.Deployment
@@ -161,7 +166,7 @@ func RegisterDeploymentsEndpoints(api huma.API, basePath string, registry servic
 		}
 
 		if err != nil {
-			if errors.Is(err, database.ErrNotFound) {
+			if errors.Is(err, database.ErrNotFound) || errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
 				return nil, huma.Error404NotFound("Resource not found in registry")
 			}
 			if errors.Is(err, database.ErrAlreadyExists) {
@@ -199,9 +204,9 @@ func RegisterDeploymentsEndpoints(api huma.API, basePath string, registry servic
 			return nil, huma.Error400BadRequest("Invalid version encoding", err)
 		}
 
-		deployment, err := registry.UpdateDeploymentConfig(ctx, serverName, version, input.Body.Config)
+		deployment, err := registry.UpdateDeploymentConfig(ctx, serverName, version, input.ResourceType, input.Body.Config)
 		if err != nil {
-			if errors.Is(err, database.ErrNotFound) {
+			if errors.Is(err, database.ErrNotFound) || errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
 				return nil, huma.Error404NotFound("Deployment not found")
 			}
 			return nil, huma.Error500InternalServerError("Failed to update deployment configuration", err)
@@ -210,15 +215,22 @@ func RegisterDeploymentsEndpoints(api huma.API, basePath string, registry servic
 		return &DeploymentResponse{Body: *deployment}, nil
 	})
 
-	// Remove a deployed server
+	// Remove a deployment
 	huma.Register(api, huma.Operation{
-		OperationID: "remove-server",
+		OperationID: "remove-deployment",
 		Method:      http.MethodDelete,
 		Path:        basePath + "/deployments/{serverName}/versions/{version}",
 		Summary:     "Remove a deployed resource",
-		Description: "Remove a resource (MCP server or agent) from deployed state",
+		Description: "Remove a deployment from deployed state",
 		Tags:        []string{"deployments"},
 	}, func(ctx context.Context, input *DeploymentInput) (*struct{}, error) {
+		switch input.ResourceType {
+		case "mcp", "agent":
+			// Valid resource types
+		default:
+			return nil, huma.Error400BadRequest("Invalid resource type. Must be 'mcp' or 'agent'. Got: " + input.ResourceType)
+		}
+
 		serverName, err := url.PathUnescape(input.ServerName)
 		if err != nil {
 			return nil, huma.Error400BadRequest("Invalid server name encoding", err)
@@ -229,12 +241,12 @@ func RegisterDeploymentsEndpoints(api huma.API, basePath string, registry servic
 			return nil, huma.Error400BadRequest("Invalid version encoding", err)
 		}
 
-		err = registry.RemoveServer(ctx, serverName, version)
+		err = registry.RemoveDeployment(ctx, serverName, version, input.ResourceType)
 		if err != nil {
-			if errors.Is(err, database.ErrNotFound) {
+			if errors.Is(err, database.ErrNotFound) || errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
 				return nil, huma.Error404NotFound("Deployment not found")
 			}
-			return nil, huma.Error500InternalServerError("Failed to remove server", err)
+			return nil, huma.Error500InternalServerError("Failed to remove deployment", err)
 		}
 
 		return &struct{}{}, nil

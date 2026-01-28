@@ -17,6 +17,7 @@ import (
 	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/service"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/telemetry"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/auth"
 )
 
 //go:embed all:ui/dist
@@ -81,7 +82,8 @@ func (s *Server) Mux() *http.ServeMux {
 }
 
 // NewServer creates a new HTTP server
-func NewServer(cfg *config.Config, registryService service.RegistryService, metrics *telemetry.Metrics, versionInfo *v0.VersionBody, customUIHandler http.Handler) *Server {
+// Note: AuthZ is handled at the DB/service layer, not at the API layer.
+func NewServer(cfg *config.Config, registryService service.RegistryService, metrics *telemetry.Metrics, versionInfo *v0.VersionBody, customUIHandler http.Handler, authnProvider auth.AuthnProvider) *Server {
 	// Create HTTP mux and Huma API
 	mux := http.NewServeMux()
 
@@ -100,7 +102,7 @@ func NewServer(cfg *config.Config, registryService service.RegistryService, metr
 		}
 	}
 
-	api := router.NewHumaAPI(cfg, registryService, mux, metrics, versionInfo, uiHandler)
+	api := router.NewHumaAPI(cfg, registryService, mux, metrics, versionInfo, uiHandler, authnProvider)
 
 	// Configure CORS with permissive settings for public API
 	corsHandler := cors.New(cors.Options{

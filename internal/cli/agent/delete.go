@@ -61,7 +61,7 @@ func runDelete(cmd *cobra.Command, args []string) error {
 
 	// Make sure to remove the deployment before deleting the agent from database
 	if deleteForceFlag && isDeployed {
-		if err := apiClient.RemoveServer(agentName, deleteVersion); err != nil {
+		if err := apiClient.RemoveDeployment(agentName, deleteVersion, "agent"); err != nil {
 			return fmt.Errorf("failed to remove deployment before delete: %w", err)
 		}
 	}
@@ -104,7 +104,7 @@ func isAgentDeployed(agentName, version string) (bool, error) {
 		return false, fmt.Errorf("API client not initialized")
 	}
 
-	deployment, err := apiClient.GetDeployedServerByNameAndVersion(agentName, version)
+	deployment, err := apiClient.GetDeployedServerByNameAndVersion(agentName, version, "agent")
 	if err != nil {
 		return false, fmt.Errorf("failed to get deployment: %w", err)
 	}

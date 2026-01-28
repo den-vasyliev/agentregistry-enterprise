@@ -9,10 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/frameworks/common"
-	"github.com/agentregistry-dev/agentregistry/internal/models"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/database"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/database"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	apiv0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 	"github.com/modelcontextprotocol/registry/pkg/model"
@@ -125,7 +123,7 @@ func (d *discoveryRegistry) UnpublishSkill(context.Context, string, string) erro
 func (d *discoveryRegistry) GetDeployments(context.Context, *models.DeploymentFilter) ([]*models.Deployment, error) {
 	return nil, database.ErrNotFound
 }
-func (d *discoveryRegistry) GetDeploymentByNameAndVersion(context.Context, string, string) (*models.Deployment, error) {
+func (d *discoveryRegistry) GetDeploymentByNameAndVersion(context.Context, string, string, string) (*models.Deployment, error) {
 	return nil, database.ErrNotFound
 }
 func (d *discoveryRegistry) DeployServer(context.Context, string, string, map[string]string, bool, string) (*models.Deployment, error) {
@@ -134,10 +132,10 @@ func (d *discoveryRegistry) DeployServer(context.Context, string, string, map[st
 func (d *discoveryRegistry) DeployAgent(context.Context, string, string, map[string]string, bool, string) (*models.Deployment, error) {
 	return nil, database.ErrNotFound
 }
-func (d *discoveryRegistry) UpdateDeploymentConfig(context.Context, string, string, map[string]string) (*models.Deployment, error) {
+func (d *discoveryRegistry) UpdateDeploymentConfig(context.Context, string, string, string, map[string]string) (*models.Deployment, error) {
 	return nil, database.ErrNotFound
 }
-func (d *discoveryRegistry) RemoveServer(context.Context, string, string) error {
+func (d *discoveryRegistry) RemoveDeployment(context.Context, string, string, string) error {
 	return database.ErrNotFound
 }
 func (d *discoveryRegistry) ReconcileAll(context.Context) error { return nil }
@@ -181,7 +179,7 @@ func TestServerTools_ListAndReadme(t *testing.T) {
 		serverReadme: readme,
 	}
 
-	server := NewServer(config.NewConfig(), reg)
+	server := NewServer(reg)
 	clientTransport, serverTransport := mcp.NewInMemoryTransports()
 	serverSession, err := server.Connect(ctx, serverTransport, nil)
 	require.NoError(t, err)
@@ -245,7 +243,7 @@ func TestAgentAndSkillTools_ListAndGet(t *testing.T) {
 		agents: []*models.AgentResponse{
 			{
 				Agent: models.AgentJSON{
-					AgentManifest: common.AgentManifest{
+					AgentManifest: models.AgentManifest{
 						Name:      "com.example/agent",
 						Language:  "go",
 						Framework: "none",
@@ -268,7 +266,7 @@ func TestAgentAndSkillTools_ListAndGet(t *testing.T) {
 		},
 	}
 
-	server := NewServer(config.NewConfig(), reg)
+	server := NewServer(reg)
 	clientTransport, serverTransport := mcp.NewInMemoryTransports()
 	serverSession, err := server.Connect(ctx, serverTransport, nil)
 	require.NoError(t, err)

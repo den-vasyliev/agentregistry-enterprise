@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agentregistry-dev/agentregistry/internal/models"
 	internalv0 "github.com/agentregistry-dev/agentregistry/internal/registry/api/handlers/v0"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 )
 
@@ -764,10 +764,10 @@ func (c *Client) GetDeployedServers() ([]*DeploymentResponse, error) {
 }
 
 // GetDeployedServerByNameAndVersion retrieves a specific deployment by name and version
-func (c *Client) GetDeployedServerByNameAndVersion(name string, version string) (*DeploymentResponse, error) {
+func (c *Client) GetDeployedServerByNameAndVersion(name string, version string, resourceType string) (*DeploymentResponse, error) {
 	encName := url.PathEscape(name)
 	encVersion := url.PathEscape(version)
-	url := fmt.Sprintf("/deployments/%s/versions/%s", encName, encVersion)
+	url := fmt.Sprintf("/deployments/%s/versions/%s?resourceType=%s", encName, encVersion, resourceType)
 	req, err := c.newRequest(http.MethodGet, url)
 	if err != nil {
 		return nil, err
@@ -822,25 +822,26 @@ func (c *Client) DeployAgent(name, version string, config map[string]string, run
 }
 
 // UpdateDeploymentConfig updates deployment configuration
-func (c *Client) UpdateDeploymentConfig(name string, config map[string]string) (*DeploymentResponse, error) {
+func (c *Client) UpdateDeploymentConfig(name string, version string, resourceType string, config map[string]string) (*DeploymentResponse, error) {
 	encName := url.PathEscape(name)
+	encVersion := url.PathEscape(version)
 	payload := map[string]any{
 		"config": config,
 	}
 
 	var deployment DeploymentResponse
-	if err := c.doJsonRequest(http.MethodPut, "/deployments/"+encName+"/config", payload, &deployment); err != nil {
+	if err := c.doJsonRequest(http.MethodPut, "/deployments/"+encName+"/versions/"+encVersion+"?resourceType="+resourceType, payload, &deployment); err != nil {
 		return nil, err
 	}
 
 	return &deployment, nil
 }
 
-// RemoveServer removes a deployment
-func (c *Client) RemoveServer(name string, version string) error {
+// RemoveDeployment removes a deployment
+func (c *Client) RemoveDeployment(name string, version string, resourceType string) error {
 	encName := url.PathEscape(name)
 	encVersion := url.PathEscape(version)
-	req, err := c.newRequest(http.MethodDelete, "/deployments/"+encName+"/versions/"+encVersion)
+	req, err := c.newRequest(http.MethodDelete, "/deployments/"+encName+"/versions/"+encVersion+"?resourceType="+resourceType)
 	if err != nil {
 		return err
 	}

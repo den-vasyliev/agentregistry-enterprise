@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	v0auth "github.com/agentregistry-dev/agentregistry/internal/registry/api/handlers/v0/auth"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/auth"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,14 +43,14 @@ func TestNoneHandler_GetAnonymousToken(t *testing.T) {
 	assert.Equal(t, auth.MethodNone, claims.AuthMethod)
 	assert.Equal(t, "anonymous", claims.AuthMethodSubject)
 
-	// Check permissions - should have both publish and edit permissions
-	require.Len(t, claims.Permissions, 2)
+	expectedPermissions := []auth.Permission{
+		{Action: auth.PermissionActionRead, ResourcePattern: "io.modelcontextprotocol.anonymous/*"},
+		{Action: auth.PermissionActionPush, ResourcePattern: "io.modelcontextprotocol.anonymous/*"},
+		{Action: auth.PermissionActionPublish, ResourcePattern: "io.modelcontextprotocol.anonymous/*"},
+		{Action: auth.PermissionActionEdit, ResourcePattern: "io.modelcontextprotocol.anonymous/*"},
+		{Action: auth.PermissionActionDelete, ResourcePattern: "io.modelcontextprotocol.anonymous/*"},
+		{Action: auth.PermissionActionDeploy, ResourcePattern: "io.modelcontextprotocol.anonymous/*"},
+	}
 
-	// Check publish permission
-	assert.Equal(t, auth.PermissionActionPublish, claims.Permissions[0].Action)
-	assert.Equal(t, "io.modelcontextprotocol.anonymous/*", claims.Permissions[0].ResourcePattern)
-
-	// Check edit permission
-	assert.Equal(t, auth.PermissionActionEdit, claims.Permissions[1].Action)
-	assert.Equal(t, "io.modelcontextprotocol.anonymous/*", claims.Permissions[1].ResourcePattern)
+	assert.ElementsMatch(t, expectedPermissions, claims.Permissions, "should have all permissions")
 }

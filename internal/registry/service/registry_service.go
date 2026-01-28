@@ -9,16 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/frameworks/common"
-	models "github.com/agentregistry-dev/agentregistry/internal/models"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/database"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/embeddings"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/validators"
 	"github.com/agentregistry-dev/agentregistry/internal/runtime"
 	"github.com/agentregistry-dev/agentregistry/internal/runtime/translation/dockercompose"
 	"github.com/agentregistry-dev/agentregistry/internal/runtime/translation/kagent"
 	"github.com/agentregistry-dev/agentregistry/internal/runtime/translation/registry"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/database"
 	"github.com/jackc/pgx/v5"
 	apiv0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 	"github.com/modelcontextprotocol/registry/pkg/model"
@@ -449,7 +448,7 @@ func (s *registryServiceImpl) PublishServer(ctx context.Context, serverName, ver
 func (s *registryServiceImpl) UnpublishServer(ctx context.Context, serverName, version string) error {
 	return s.db.InTransaction(ctx, func(txCtx context.Context, tx pgx.Tx) error {
 		// Check if the server is currently deployed
-		deployment, err := s.db.GetDeploymentByNameAndVersion(txCtx, tx, serverName, version)
+		deployment, err := s.db.GetDeploymentByNameAndVersion(txCtx, tx, serverName, version, "mcp")
 		if err != nil && !errors.Is(err, database.ErrNotFound) {
 			return fmt.Errorf("failed to check deployment status: %w", err)
 		}
@@ -706,8 +705,8 @@ func (s *registryServiceImpl) GetDeployments(ctx context.Context, filter *models
 }
 
 // GetDeploymentByName retrieves a specific deployment
-func (s *registryServiceImpl) GetDeploymentByNameAndVersion(ctx context.Context, serverName string, version string) (*models.Deployment, error) {
-	return s.db.GetDeploymentByNameAndVersion(ctx, nil, serverName, version)
+func (s *registryServiceImpl) GetDeploymentByNameAndVersion(ctx context.Context, serverName string, version string, artifactType string) (*models.Deployment, error) {
+	return s.db.GetDeploymentByNameAndVersion(ctx, nil, serverName, version, artifactType)
 }
 
 func (s *registryServiceImpl) IsServerPublished(ctx context.Context, serverName, version string) (bool, error) {
@@ -747,14 +746,14 @@ func (s *registryServiceImpl) DeployServer(ctx context.Context, serverName, vers
 	}
 
 	if err := s.ReconcileAll(ctx); err != nil {
-		if cleanupErr := s.db.RemoveDeployment(ctx, nil, serverName, version); cleanupErr != nil {
+		if cleanupErr := s.db.RemoveDeployment(ctx, nil, serverName, version, "mcp"); cleanupErr != nil {
 			return nil, fmt.Errorf("deployment created but reconciliation failed: %v (cleanup failed: %v)", err, cleanupErr)
 		}
 		return nil, fmt.Errorf("deployment created but reconciliation failed: %w", err)
 	}
 
 	// Return the created deployment
-	return s.db.GetDeploymentByNameAndVersion(ctx, nil, serverName, version)
+	return s.db.GetDeploymentByNameAndVersion(ctx, nil, serverName, version, "mcp")
 }
 
 // DeployAgent deploys an agent with configuration
@@ -818,23 +817,23 @@ func (s *registryServiceImpl) DeployAgent(ctx context.Context, agentName, versio
 	// If reconciliation fails, remove the deployment that we just added
 	// This is required because reconciler uses the DB as the source of truth for desired state
 	if err := s.ReconcileAll(ctx); err != nil {
-		if cleanupErr := s.db.RemoveDeployment(ctx, nil, agentName, version); cleanupErr != nil {
+		if cleanupErr := s.db.RemoveDeployment(ctx, nil, agentName, version, "agent"); cleanupErr != nil {
 			return nil, fmt.Errorf("deployment created but reconciliation failed: %v (cleanup failed: %v)", err, cleanupErr)
 		}
 		return nil, fmt.Errorf("deployment created but reconciliation failed: %w", err)
 	}
 
-	return s.db.GetDeploymentByNameAndVersion(ctx, nil, agentName, version)
+	return s.db.GetDeploymentByNameAndVersion(ctx, nil, agentName, version, "agent")
 }
 
 // UpdateDeploymentConfig updates the configuration for a deployment
-func (s *registryServiceImpl) UpdateDeploymentConfig(ctx context.Context, serverName string, version string, config map[string]string) (*models.Deployment, error) {
-	_, err := s.db.GetDeploymentByNameAndVersion(ctx, nil, serverName, version)
+func (s *registryServiceImpl) UpdateDeploymentConfig(ctx context.Context, serverName string, version string, artifactType string, config map[string]string) (*models.Deployment, error) {
+	_, err := s.db.GetDeploymentByNameAndVersion(ctx, nil, serverName, version, artifactType)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.db.UpdateDeploymentConfig(ctx, nil, serverName, config)
+	err = s.db.UpdateDeploymentConfig(ctx, nil, serverName, version, artifactType, config)
 	if err != nil {
 		return nil, err
 	}
@@ -844,24 +843,24 @@ func (s *registryServiceImpl) UpdateDeploymentConfig(ctx context.Context, server
 		return nil, fmt.Errorf("config updated but reconciliation failed: %w", err)
 	}
 
-	return s.db.GetDeploymentByNameAndVersion(ctx, nil, serverName, version)
+	return s.db.GetDeploymentByNameAndVersion(ctx, nil, serverName, version, artifactType)
 }
 
-// RemoveServer removes a deployment
-func (s *registryServiceImpl) RemoveServer(ctx context.Context, serverName string, version string) error {
-	deployment, err := s.db.GetDeploymentByNameAndVersion(ctx, nil, serverName, version)
+// RemoveDeployment removes a deployment
+func (s *registryServiceImpl) RemoveDeployment(ctx context.Context, serverName string, version string, artifactType string) error {
+	deployment, err := s.db.GetDeploymentByNameAndVersion(ctx, nil, serverName, version, artifactType)
 	if err != nil {
 		return err
 	}
 
 	// Clean up kubernetes resources
 	if deployment != nil && deployment.Runtime == "kubernetes" {
-		if deployment.ResourceType == "agent" {
+		if artifactType == "agent" {
 			if err := runtime.DeleteKubernetesAgent(ctx, serverName, version, kagent.DefaultNamespace); err != nil {
 				return err
 			}
 		}
-		if deployment.ResourceType == "mcp" {
+		if artifactType == "mcp" {
 			if err := runtime.DeleteKubernetesMCPServer(ctx, serverName, kagent.DefaultNamespace); err != nil {
 				return err
 			}
@@ -871,7 +870,7 @@ func (s *registryServiceImpl) RemoveServer(ctx context.Context, serverName strin
 		}
 	}
 
-	err = s.db.RemoveDeployment(ctx, nil, serverName, version)
+	err = s.db.RemoveDeployment(ctx, nil, serverName, version, artifactType)
 	if err != nil {
 		return err
 	}
@@ -885,8 +884,8 @@ func (s *registryServiceImpl) RemoveServer(ctx context.Context, serverName strin
 
 // RemoveAgent removes an agent deployment
 func (s *registryServiceImpl) RemoveAgent(ctx context.Context, agentName string, version string) error {
-	// Use RemoveServer implementation as it handles both types based on deployment record
-	return s.RemoveServer(ctx, agentName, version)
+	// Use RemoveDeployment implementation as it handles both types based on deployment record
+	return s.RemoveDeployment(ctx, agentName, version, "agent")
 }
 
 // ReconcileAll fetches all deployments from database and reconciles containers
@@ -1019,7 +1018,7 @@ func (s *registryServiceImpl) ReconcileAll(ctx context.Context) error {
 // This follows the same logic as the CLI-side resolveRegistryServer
 // TODO: Should we also be resolving the other types (i.e. command)? I didn't see my command server configured in the agent-gateway yaml, unsure if expected or a bug.
 // cat /tmp/arctl-runtime/agent-gateway.yaml only had an mcp route for the registry-resolved (since we added it to the run requests).
-func (s *registryServiceImpl) resolveAgentManifestMCPServers(ctx context.Context, manifest *common.AgentManifest) ([]*registry.MCPServerRunRequest, error) {
+func (s *registryServiceImpl) resolveAgentManifestMCPServers(ctx context.Context, manifest *models.AgentManifest) ([]*registry.MCPServerRunRequest, error) {
 	var resolvedServers []*registry.MCPServerRunRequest
 
 	for _, mcpServer := range manifest.McpServers {

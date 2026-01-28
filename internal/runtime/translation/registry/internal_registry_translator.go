@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/agentregistry-dev/agentregistry/internal/models"
 	"github.com/agentregistry-dev/agentregistry/internal/runtime/translation/api"
 	registryutils "github.com/agentregistry-dev/agentregistry/internal/runtime/translation/registry/utils"
 	"github.com/agentregistry-dev/agentregistry/internal/utils"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 	"github.com/modelcontextprotocol/registry/pkg/model"
 
 	apiv0 "github.com/modelcontextprotocol/registry/pkg/api/v0"

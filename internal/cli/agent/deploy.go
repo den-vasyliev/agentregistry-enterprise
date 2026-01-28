@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/frameworks/common"
 	"github.com/agentregistry-dev/agentregistry/internal/runtime"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 	"github.com/spf13/cobra"
 )
 
@@ -92,7 +92,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 }
 
 // buildDeployConfig creates the configuration map with all necessary environment variables
-func buildDeployConfig(manifest *common.AgentManifest) map[string]string {
+func buildDeployConfig(manifest *models.AgentManifest) map[string]string {
 	config := make(map[string]string)
 
 	// Add model provider API key if available

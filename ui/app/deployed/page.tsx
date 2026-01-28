@@ -35,7 +35,7 @@ export default function DeployedPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [removing, setRemoving] = useState(false)
-  const [serverToRemove, setServerToRemove] = useState<{ name: string, version: string } | null>(null)
+  const [serverToRemove, setServerToRemove] = useState<{ name: string, version: string, resourceType: string } | null>(null)
   const [copied, setCopied] = useState(false)
 
   const gatewayUrl = "http://localhost:21212/mcp"
@@ -67,8 +67,8 @@ export default function DeployedPage() {
     return () => clearInterval(interval)
   }, [])
 
-  const handleRemove = async (serverName: string, version: string) => {
-    setServerToRemove({ name: serverName, version })
+  const handleRemove = async (serverName: string, version: string, resourceType: string) => {
+    setServerToRemove({ name: serverName, version, resourceType })
   }
 
   const confirmRemove = async () => {
@@ -76,10 +76,9 @@ export default function DeployedPage() {
 
     try {
       setRemoving(true)
-      await adminApiClient.removeDeployment(serverToRemove.name, serverToRemove.version)
-
+      await adminApiClient.removeDeployment(serverToRemove.name, serverToRemove.version, serverToRemove.resourceType)
       // Remove from local state
-      setDeployments(prev => prev.filter(d => d.serverName !== serverToRemove.name || d.version !== serverToRemove.version))
+      setDeployments(prev => prev.filter(d => d.serverName !== serverToRemove.name || d.version !== serverToRemove.version || d.resourceType !== serverToRemove.resourceType))
       setServerToRemove(null)
       fetchDeployments()
     } catch (err) {
@@ -253,7 +252,7 @@ export default function DeployedPage() {
             </Card>
           ) : (
             <div className="space-y-6">
-              
+
               {/* Agents */}
               {agents.length > 0 && (
                 <div className="space-y-4">
@@ -321,7 +320,7 @@ export default function DeployedPage() {
                             variant="destructive"
                             size="sm"
                             className="ml-4"
-                            onClick={() => handleRemove(item.serverName, item.version)}
+                            onClick={() => handleRemove(item.serverName, item.version, item.resourceType)}
                             disabled={removing}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
@@ -401,7 +400,7 @@ export default function DeployedPage() {
                             variant="destructive"
                             size="sm"
                             className="ml-4"
-                            onClick={() => handleRemove(item.serverName, item.version)}
+                            onClick={() => handleRemove(item.serverName, item.version, item.resourceType)}
                             disabled={removing}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
@@ -425,7 +424,7 @@ export default function DeployedPage() {
           <DialogHeader>
             <DialogTitle>Remove Deployment</DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove <strong>{serverToRemove?.name}</strong> (version {serverToRemove?.version})?
+              Are you sure you want to remove <strong>{serverToRemove?.name}</strong> (version {serverToRemove?.version}) ({serverToRemove?.resourceType})?
               <br />
               <br />
               This will stop the server and remove it from your deployments. This action cannot be undone.

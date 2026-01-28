@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	v0 "github.com/agentregistry-dev/agentregistry/internal/registry/api/handlers/v0"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/auth"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/auth"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -237,6 +237,42 @@ func (h *OIDCHandler) validateExtraClaims(claims *OIDCClaims) error {
 func (h *OIDCHandler) buildPermissions(_ *OIDCClaims) []auth.Permission {
 	var permissions []auth.Permission
 
+	if h.config.OIDCReadPerms != "" {
+		for pattern := range strings.SplitSeq(h.config.OIDCReadPerms, ",") {
+			pattern = strings.TrimSpace(pattern)
+			if pattern != "" {
+				permissions = append(permissions, auth.Permission{
+					Action:          auth.PermissionActionRead,
+					ResourcePattern: pattern,
+				})
+			}
+		}
+	}
+
+	if h.config.OIDCPushPerms != "" {
+		for pattern := range strings.SplitSeq(h.config.OIDCPushPerms, ",") {
+			pattern = strings.TrimSpace(pattern)
+			if pattern != "" {
+				permissions = append(permissions, auth.Permission{
+					Action:          auth.PermissionActionPush,
+					ResourcePattern: pattern,
+				})
+			}
+		}
+	}
+
+	if h.config.OIDCDeployPerms != "" {
+		for pattern := range strings.SplitSeq(h.config.OIDCDeployPerms, ",") {
+			pattern = strings.TrimSpace(pattern)
+			if pattern != "" {
+				permissions = append(permissions, auth.Permission{
+					Action:          auth.PermissionActionDeploy,
+					ResourcePattern: pattern,
+				})
+			}
+		}
+	}
+
 	// Parse permission patterns from configuration
 	if h.config.OIDCPublishPerms != "" {
 		for pattern := range strings.SplitSeq(h.config.OIDCPublishPerms, ",") {
@@ -256,6 +292,18 @@ func (h *OIDCHandler) buildPermissions(_ *OIDCClaims) []auth.Permission {
 			if pattern != "" {
 				permissions = append(permissions, auth.Permission{
 					Action:          auth.PermissionActionEdit,
+					ResourcePattern: pattern,
+				})
+			}
+		}
+	}
+
+	if h.config.OIDCDeletePerms != "" {
+		for pattern := range strings.SplitSeq(h.config.OIDCDeletePerms, ",") {
+			pattern = strings.TrimSpace(pattern)
+			if pattern != "" {
+				permissions = append(permissions, auth.Permission{
+					Action:          auth.PermissionActionDelete,
 					ResourcePattern: pattern,
 				})
 			}

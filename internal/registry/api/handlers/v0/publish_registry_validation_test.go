@@ -11,10 +11,10 @@ import (
 	"testing"
 
 	v0 "github.com/agentregistry-dev/agentregistry/internal/registry/api/handlers/v0"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/auth"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/database"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/service"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/auth"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	apiv0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
@@ -41,8 +41,7 @@ func TestPublishRegistryValidation(t *testing.T) {
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
 
 	// Register the endpoint
-	authz := auth.Authorizer{Authz: nil}
-	v0.RegisterCreateEndpoint(api, "/v0", registryService, authz)
+	v0.RegisterCreateEndpoint(api, "/v0", registryService)
 
 	t.Run("publish fails with npm registry validation error", func(t *testing.T) {
 		publishReq := apiv0.ServerJSON{

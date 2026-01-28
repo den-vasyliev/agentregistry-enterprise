@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/docker"
-	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/frameworks/common"
 	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/project"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 	"github.com/spf13/cobra"
 )
 
@@ -109,7 +109,7 @@ func validateProjectDir(projectDir string) error {
 
 // buildMCPServers builds Docker images for MCP servers that are defined locally in the agent.yaml.
 // This only builds command-type servers. Remote-type does not need to be built, and registry-type are built at runtime.
-func buildMCPServers(projectDir string, manifest *common.AgentManifest, extraArgs []string) error {
+func buildMCPServers(projectDir string, manifest *models.AgentManifest, extraArgs []string) error {
 	if manifest == nil {
 		return nil
 	}
@@ -141,7 +141,7 @@ func buildMCPServers(projectDir string, manifest *common.AgentManifest, extraArg
 	return nil
 }
 
-func pushMCPServers(manifest *common.AgentManifest) error {
+func pushMCPServers(manifest *models.AgentManifest) error {
 	if manifest == nil {
 		return nil
 	}

@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/agentregistry-dev/agentregistry/internal/models"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/database"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/database"
 	apiv0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 )
 
@@ -85,15 +85,15 @@ type RegistryService interface {
 	// GetDeployments retrieves all deployed resources (MCP servers, agents)
 	GetDeployments(ctx context.Context, filter *models.DeploymentFilter) ([]*models.Deployment, error)
 	// GetDeploymentByName retrieves a specific deployment by resource name
-	GetDeploymentByNameAndVersion(ctx context.Context, resourceName string, version string) (*models.Deployment, error)
+	GetDeploymentByNameAndVersion(ctx context.Context, resourceName string, version string, artifactType string) (*models.Deployment, error)
 	// DeployServer deploys an MCP server with configuration
 	DeployServer(ctx context.Context, serverName, version string, config map[string]string, preferRemote bool, runtime string) (*models.Deployment, error)
 	// DeployAgent deploys an agent with configuration (to be implemented)
 	DeployAgent(ctx context.Context, agentName, version string, config map[string]string, preferRemote bool, runtime string) (*models.Deployment, error)
 	// UpdateDeploymentConfig updates the configuration for a deployment
-	UpdateDeploymentConfig(ctx context.Context, resourceName string, version string, config map[string]string) (*models.Deployment, error)
-	// RemoveServer removes a deployment (works for any resource type)
-	RemoveServer(ctx context.Context, resourceName string, version string) error
+	UpdateDeploymentConfig(ctx context.Context, resourceName string, version string, artifactType string, config map[string]string) (*models.Deployment, error)
+	// RemoveDeployment removes a deployment (works for any resource type)
+	RemoveDeployment(ctx context.Context, resourceName string, version string, artifactType string) error
 
 	Reconciler
 }

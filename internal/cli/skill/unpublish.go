@@ -3,7 +3,7 @@ package skill
 import (
 	"fmt"
 
-	"github.com/agentregistry-dev/agentregistry/internal/models"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 	"github.com/spf13/cobra"
 )
 

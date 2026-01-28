@@ -14,17 +14,29 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// PermissionArtifactType represents the type of artifact that a permission is for
+type PermissionArtifactType string
+
+const (
+	PermissionArtifactTypeAgent  PermissionArtifactType = "agent"
+	PermissionArtifactTypeSkill  PermissionArtifactType = "skill"
+	PermissionArtifactTypeServer PermissionArtifactType = "server"
+)
+
 // PermissionAction represents the type of action that can be performed
 type PermissionAction string
 
 const (
+	PermissionActionRead    PermissionAction = "read"
+	PermissionActionPush    PermissionAction = "push"
 	PermissionActionPublish PermissionAction = "publish"
-	// Intended for admins taking moderation actions only, at least for now
-	PermissionActionEdit PermissionAction = "edit"
+	PermissionActionEdit    PermissionAction = "edit"
+	PermissionActionDelete  PermissionAction = "delete"
+	PermissionActionDeploy  PermissionAction = "deploy"
 )
 
 type Permission struct {
-	Action          PermissionAction `json:"action"`   // The action type (publish or edit)
+	Action          PermissionAction `json:"action"`   // The action type (e.g. publish, edit, delete, etc.)
 	ResourcePattern string           `json:"resource"` // e.g., "io.github.username/*"
 }
 
@@ -122,7 +134,7 @@ func (j *JWTManager) GenerateTokenResponse(_ context.Context, claims JWTClaims) 
 func (j *JWTManager) Check(ctx context.Context, s Session, verb PermissionAction, resource Resource) error {
 	// TODO: also check resource.Type
 	if !j.HasPermission(resource.Name, verb, s.Principal().User.Permissions) {
-		return huma.Error403Forbidden("You do not have permission to perform this action")
+		return ErrForbidden
 	}
 	return nil
 }

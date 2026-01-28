@@ -15,7 +15,7 @@ func isServerDeployed(serverName string, version string) (bool, error) {
 		return false, errors.New("API client not initialized")
 	}
 
-	deployment, err := apiClient.GetDeployedServerByNameAndVersion(serverName, version)
+	deployment, err := apiClient.GetDeployedServerByNameAndVersion(serverName, version, "mcp")
 	if err != nil {
 		return false, fmt.Errorf("failed to get deployment: %w", err)
 	}

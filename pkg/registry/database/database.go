@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	models "github.com/agentregistry-dev/agentregistry/internal/models"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 	"github.com/jackc/pgx/v5"
 	apiv0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 )
@@ -13,6 +13,7 @@ import (
 // Common database errors
 var (
 	ErrNotFound          = errors.New("record not found")
+	ErrForbidden         = errors.New("forbidden")
 	ErrAlreadyExists     = errors.New("record already exists")
 	ErrInvalidInput      = errors.New("invalid input")
 	ErrDatabase          = errors.New("database error")
@@ -221,13 +222,13 @@ type Database interface {
 	// GetDeployments retrieves all deployed servers
 	GetDeployments(ctx context.Context, tx pgx.Tx) ([]*models.Deployment, error)
 	// GetDeploymentByName retrieves a specific deployment
-	GetDeploymentByNameAndVersion(ctx context.Context, tx pgx.Tx, serverName string, version string) (*models.Deployment, error)
+	GetDeploymentByNameAndVersion(ctx context.Context, tx pgx.Tx, serverName string, version string, artifactType string) (*models.Deployment, error)
 	// UpdateDeploymentConfig updates the configuration for a deployment
-	UpdateDeploymentConfig(ctx context.Context, tx pgx.Tx, serverName string, config map[string]string) error
+	UpdateDeploymentConfig(ctx context.Context, tx pgx.Tx, serverName string, version string, artifactType string, config map[string]string) error
 	// UpdateDeploymentStatus updates the status of a deployment
-	UpdateDeploymentStatus(ctx context.Context, tx pgx.Tx, serverName, version, status string) error
+	UpdateDeploymentStatus(ctx context.Context, tx pgx.Tx, serverName, version, artifactType, status string) error
 	// RemoveDeployment removes a deployment
-	RemoveDeployment(ctx context.Context, tx pgx.Tx, serverName string, version string) error
+	RemoveDeployment(ctx context.Context, tx pgx.Tx, serverName string, version string, artifactType string) error
 }
 
 // InTransactionT is a generic helper that wraps InTransaction for functions returning a value

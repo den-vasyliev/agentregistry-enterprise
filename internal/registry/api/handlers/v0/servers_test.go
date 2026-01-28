@@ -2,6 +2,9 @@ package v0_test
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,12 +13,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agentregistry-dev/agentregistry/internal/models"
 	v0 "github.com/agentregistry-dev/agentregistry/internal/registry/api/handlers/v0"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/database"
+	internaldb "github.com/agentregistry-dev/agentregistry/internal/registry/database"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/embeddings"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/service"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/database"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	"github.com/jackc/pgx/v5"
@@ -28,8 +32,16 @@ import (
 const semanticEmbeddingDimensions = 1536
 
 func TestListServersEndpoint(t *testing.T) {
+	testSeed := make([]byte, ed25519.SeedSize)
+	_, randErr := rand.Read(testSeed)
+	require.NoError(t, randErr)
+	testConfig := &config.Config{
+		JWTPrivateKey:            hex.EncodeToString(testSeed),
+		EnableRegistryValidation: false, // Disable for unit tests
+	}
+
 	ctx := context.Background()
-	registryService := service.NewRegistryService(database.NewTestDB(t), config.NewConfig(), nil)
+	registryService := service.NewRegistryService(internaldb.NewTestDB(t), testConfig, nil)
 
 	// Setup test data
 	_, err := registryService.CreateServer(ctx, &apiv0.ServerJSON{
@@ -124,13 +136,19 @@ func TestListServersEndpoint(t *testing.T) {
 
 func TestListServersSemanticSearch(t *testing.T) {
 	ctx := context.Background()
-	db := database.NewTestDB(t)
+	db := internaldb.NewTestDB(t)
 	ensureVectorExtension(t, db)
 
 	cfg := config.NewConfig()
 	cfg.Embeddings.Enabled = true
 	cfg.Embeddings.Provider = "stub"
 	cfg.Embeddings.Model = "stub-model"
+
+	testSeed := make([]byte, ed25519.SeedSize)
+	_, randErr := rand.Read(testSeed)
+	require.NoError(t, randErr)
+	cfg.JWTPrivateKey = hex.EncodeToString(testSeed)
+	cfg.EnableRegistryValidation = false // Disable for unit tests
 
 	provider := newStubEmbeddingProvider(map[string][]float32{
 		"server": {0.1, 0.95, 0.0},
@@ -160,7 +178,8 @@ func TestListServersSemanticSearch(t *testing.T) {
 	}
 
 	// Seed embeddings for deterministic ordering
-	require.NoError(t, registryService.UpsertServerEmbedding(ctx, backupServer, "1.0.0", &database.SemanticEmbedding{
+	ctxWithAuth := internaldb.WithTestSession(ctx)
+	require.NoError(t, registryService.UpsertServerEmbedding(ctxWithAuth, backupServer, "1.0.0", &database.SemanticEmbedding{
 		Vector:     semanticVector(0.1, 0.9, 0.0),
 		Provider:   "stub",
 		Model:      "stub-model",
@@ -168,7 +187,7 @@ func TestListServersSemanticSearch(t *testing.T) {
 		Checksum:   "backup",
 		Generated:  time.Now().UTC(),
 	}))
-	require.NoError(t, registryService.UpsertServerEmbedding(ctx, weatherServer, "1.0.0", &database.SemanticEmbedding{
+	require.NoError(t, registryService.UpsertServerEmbedding(ctxWithAuth, weatherServer, "1.0.0", &database.SemanticEmbedding{
 		Vector:     semanticVector(0.9, 0.1, 0.0),
 		Provider:   "stub",
 		Model:      "stub-model",
@@ -213,8 +232,16 @@ func TestListServersSemanticSearch(t *testing.T) {
 }
 
 func TestGetLatestServerVersionEndpoint(t *testing.T) {
+	testSeed := make([]byte, ed25519.SeedSize)
+	_, randErr := rand.Read(testSeed)
+	require.NoError(t, randErr)
+	testConfig := &config.Config{
+		JWTPrivateKey:            hex.EncodeToString(testSeed),
+		EnableRegistryValidation: false, // Disable for unit tests
+	}
+
 	ctx := context.Background()
-	registryService := service.NewRegistryService(database.NewTestDB(t), config.NewConfig(), nil)
+	registryService := service.NewRegistryService(internaldb.NewTestDB(t), testConfig, nil)
 
 	// Setup test data
 	_, err := registryService.CreateServer(ctx, &apiv0.ServerJSON{
@@ -279,8 +306,16 @@ func TestGetLatestServerVersionEndpoint(t *testing.T) {
 }
 
 func TestGetServerVersionEndpoint(t *testing.T) {
+	testSeed := make([]byte, ed25519.SeedSize)
+	_, randErr := rand.Read(testSeed)
+	require.NoError(t, randErr)
+	testConfig := &config.Config{
+		JWTPrivateKey:            hex.EncodeToString(testSeed),
+		EnableRegistryValidation: false, // Disable for unit tests
+	}
+
 	ctx := context.Background()
-	registryService := service.NewRegistryService(database.NewTestDB(t), config.NewConfig(), nil)
+	registryService := service.NewRegistryService(internaldb.NewTestDB(t), testConfig, nil)
 
 	serverName := "com.example/version-server"
 
@@ -473,8 +508,16 @@ func semanticVector(values ...float32) []float32 {
 }
 
 func TestGetServerReadmeEndpoints(t *testing.T) {
+	testSeed := make([]byte, ed25519.SeedSize)
+	_, randErr := rand.Read(testSeed)
+	require.NoError(t, randErr)
+	testConfig := &config.Config{
+		JWTPrivateKey:            hex.EncodeToString(testSeed),
+		EnableRegistryValidation: false, // Disable for unit tests
+	}
+
 	ctx := context.Background()
-	registryService := service.NewRegistryService(database.NewTestDB(t), config.NewConfig(), nil)
+	registryService := service.NewRegistryService(internaldb.NewTestDB(t), testConfig, nil)
 
 	serverName := "com.example/readme-endpoint"
 	_, err := registryService.CreateServer(ctx, &apiv0.ServerJSON{
@@ -485,7 +528,8 @@ func TestGetServerReadmeEndpoints(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = registryService.StoreServerReadme(ctx, serverName, "1.0.0", []byte("# Title\nBody"), "text/markdown")
+	ctxWithAuth := internaldb.WithTestSession(ctx)
+	err = registryService.StoreServerReadme(ctxWithAuth, serverName, "1.0.0", []byte("# Title\nBody"), "text/markdown")
 	require.NoError(t, err)
 
 	mux := http.NewServeMux()
@@ -541,8 +585,16 @@ func TestGetServerReadmeEndpoints(t *testing.T) {
 }
 
 func TestGetAllVersionsEndpoint(t *testing.T) {
+	testSeed := make([]byte, ed25519.SeedSize)
+	_, randErr := rand.Read(testSeed)
+	require.NoError(t, randErr)
+	testConfig := &config.Config{
+		JWTPrivateKey:            hex.EncodeToString(testSeed),
+		EnableRegistryValidation: false, // Disable for unit tests
+	}
+
 	ctx := context.Background()
-	registryService := service.NewRegistryService(database.NewTestDB(t), config.NewConfig(), nil)
+	registryService := service.NewRegistryService(internaldb.NewTestDB(t), testConfig, nil)
 
 	serverName := "com.example/multi-version-server"
 
@@ -636,8 +688,16 @@ func TestGetAllVersionsEndpoint(t *testing.T) {
 }
 
 func TestServersEndpointEdgeCases(t *testing.T) {
+	testSeed := make([]byte, ed25519.SeedSize)
+	_, randErr := rand.Read(testSeed)
+	require.NoError(t, randErr)
+	testConfig := &config.Config{
+		JWTPrivateKey:            hex.EncodeToString(testSeed),
+		EnableRegistryValidation: false, // Disable for unit tests
+	}
+
 	ctx := context.Background()
-	registryService := service.NewRegistryService(database.NewTestDB(t), config.NewConfig(), nil)
+	registryService := service.NewRegistryService(internaldb.NewTestDB(t), testConfig, nil)
 
 	// Setup test data with edge case names that comply with constraints
 	specialServers := []struct {

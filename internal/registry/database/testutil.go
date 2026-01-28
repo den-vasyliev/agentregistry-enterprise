@@ -2,19 +2,63 @@ package database
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/auth"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/database"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/require"
 )
 
 const templateDBName = "agent_registry_test_template"
+
+// testSession is a mock session for testing that has full permissions
+type testSession struct{}
+
+func (s *testSession) Principal() auth.Principal {
+	return auth.Principal{
+		User: auth.User{
+			Permissions: []auth.Permission{
+				{
+					Action:          auth.PermissionActionEdit,
+					ResourcePattern: "*", // Allow all resources
+				},
+			},
+		},
+	}
+}
+
+// WithTestSession adds a test session to the context that has full permissions
+func WithTestSession(ctx context.Context) context.Context {
+	return auth.AuthSessionTo(ctx, &testSession{})
+}
+
+// createTestAuthz creates a permissive authorizer for testing
+func createTestAuthz() auth.Authorizer {
+	// Generate a proper Ed25519 seed for testing
+	testSeed := make([]byte, ed25519.SeedSize)
+	_, err := rand.Read(testSeed)
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate test seed: %v", err))
+	}
+
+	cfg := &config.Config{
+		JWTPrivateKey:            hex.EncodeToString(testSeed),
+		EnableRegistryValidation: false, // disable registry validation for testing
+	}
+	jwtManager := auth.NewJWTManager(cfg)
+	authzProvider := auth.NewPublicAuthzProvider(jwtManager)
+	return auth.Authorizer{Authz: authzProvider}
+}
 
 // ensureTemplateDB creates a template database with migrations applied
 // Multiple processes may call this, so we handle race conditions
@@ -60,7 +104,9 @@ func ensureTemplateDB(ctx context.Context, adminConn *pgx.Conn) error {
 	}
 
 	// Connect to template and run migrations (always) to keep it up-to-date
-	templateDB, err := NewPostgreSQL(ctx, templateURI)
+	// Create a permissive authz for tests
+	testAuthz := createTestAuthz()
+	templateDB, err := NewPostgreSQL(ctx, templateURI, testAuthz)
 	if err != nil {
 		return fmt.Errorf("failed to connect to template database: %w", err)
 	}
@@ -85,7 +131,7 @@ func ensureVectorExtension(ctx context.Context, uri string) error {
 // NewTestDB creates an isolated PostgreSQL database for each test by copying a template.
 // The template database has migrations pre-applied, so each test is fast.
 // Requires PostgreSQL to be running on localhost:5432 (e.g., via docker-compose).
-func NewTestDB(t *testing.T) Database {
+func NewTestDB(t *testing.T) database.Database {
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -132,7 +178,9 @@ func NewTestDB(t *testing.T) Database {
 	// Connect to test database (no migrations needed - copied from template)
 	testURI := fmt.Sprintf("postgres://agentregistry:agentregistry@localhost:5432/%s?sslmode=disable", dbName)
 
-	db, err := NewPostgreSQL(ctx, testURI)
+	// Create a permissive authz for tests
+	testAuthz := createTestAuthz()
+	db, err := NewPostgreSQL(ctx, testURI, testAuthz)
 	require.NoError(t, err, "Failed to connect to test database")
 
 	// Register cleanup to close connection

@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	v0 "github.com/agentregistry-dev/agentregistry/internal/registry/api/handlers/v0"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/auth"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/config"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/auth"
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -61,11 +61,27 @@ func (h *NoneHandler) GetAnonymousToken(ctx context.Context) (*auth.TokenRespons
 	// Build permissions for anonymous namespace only
 	permissions := []auth.Permission{
 		{
+			Action:          auth.PermissionActionRead,
+			ResourcePattern: "io.modelcontextprotocol.anonymous/*",
+		},
+		{
+			Action:          auth.PermissionActionPush,
+			ResourcePattern: "io.modelcontextprotocol.anonymous/*",
+		},
+		{
 			Action:          auth.PermissionActionPublish,
 			ResourcePattern: "io.modelcontextprotocol.anonymous/*",
 		},
 		{
 			Action:          auth.PermissionActionEdit,
+			ResourcePattern: "io.modelcontextprotocol.anonymous/*",
+		},
+		{
+			Action:          auth.PermissionActionDelete,
+			ResourcePattern: "io.modelcontextprotocol.anonymous/*",
+		},
+		{
+			Action:          auth.PermissionActionDeploy,
 			ResourcePattern: "io.modelcontextprotocol.anonymous/*",
 		},
 	}

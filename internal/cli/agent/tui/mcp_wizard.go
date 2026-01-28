@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/frameworks/common"
 	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/tui/theme"
 	"github.com/agentregistry-dev/agentregistry/internal/registry"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/types"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -156,7 +156,7 @@ type McpServerWizard struct {
 	height int
 
 	step   wizardStep
-	result common.McpServerType
+	result models.McpServerType
 	ok     bool
 	errMsg string
 
@@ -314,7 +314,7 @@ func NewMcpServerWizard() *McpServerWizard {
 func (w *McpServerWizard) ID() string                   { return w.id }
 func (w *McpServerWizard) Fullscreen() bool             { return true }
 func (w *McpServerWizard) Ok() bool                     { return w.ok }
-func (w *McpServerWizard) Result() common.McpServerType { return w.result }
+func (w *McpServerWizard) Result() models.McpServerType { return w.result }
 
 func (w *McpServerWizard) Init() tea.Cmd {
 	return w.filePicker.Init()

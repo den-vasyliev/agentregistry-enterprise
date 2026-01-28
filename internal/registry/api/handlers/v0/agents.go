@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	agentmodels "github.com/agentregistry-dev/agentregistry/internal/models"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/auth"
-	"github.com/agentregistry-dev/agentregistry/internal/registry/database"
 	"github.com/agentregistry-dev/agentregistry/internal/registry/service"
+	agentmodels "github.com/agentregistry-dev/agentregistry/pkg/models"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/auth"
+	"github.com/agentregistry-dev/agentregistry/pkg/registry/database"
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -103,6 +103,9 @@ func RegisterAgentsEndpoints(api huma.API, pathPrefix string, registry service.R
 			if errors.Is(err, database.ErrInvalidInput) {
 				return nil, huma.Error400BadRequest(err.Error(), err)
 			}
+			if errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
+				return nil, huma.Error404NotFound("Agent not found")
+			}
 			return nil, huma.Error500InternalServerError("Failed to get agents list", err)
 		}
 
@@ -146,7 +149,7 @@ func RegisterAgentsEndpoints(api huma.API, pathPrefix string, registry service.R
 			agentResp, err = registry.GetAgentByNameAndVersion(ctx, agentName, version)
 		}
 		if err != nil {
-			if err.Error() == errRecordNotFound || errors.Is(err, database.ErrNotFound) {
+			if err.Error() == errRecordNotFound || errors.Is(err, database.ErrNotFound) || errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
 				return nil, huma.Error404NotFound("Agent not found")
 			}
 			return nil, huma.Error500InternalServerError("Failed to get agent details", err)
@@ -172,7 +175,7 @@ func RegisterAgentsEndpoints(api huma.API, pathPrefix string, registry service.R
 		}
 
 		if err := registry.DeleteAgent(ctx, agentName, version); err != nil {
-			if errors.Is(err, database.ErrNotFound) {
+			if errors.Is(err, database.ErrNotFound) || errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
 				return nil, huma.Error404NotFound("Agent not found")
 			}
 			return nil, huma.Error500InternalServerError("Failed to delete agent", err)
@@ -199,7 +202,7 @@ func RegisterAgentsEndpoints(api huma.API, pathPrefix string, registry service.R
 
 		agents, err := registry.GetAllVersionsByAgentName(ctx, agentName)
 		if err != nil {
-			if err.Error() == errRecordNotFound || errors.Is(err, database.ErrNotFound) {
+			if err.Error() == errRecordNotFound || errors.Is(err, database.ErrNotFound) || errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
 				return nil, huma.Error404NotFound("Agent not found")
 			}
 			return nil, huma.Error500InternalServerError("Failed to get agent versions", err)
@@ -230,6 +233,9 @@ func createAgentHandler(ctx context.Context, input *CreateAgentInput, registry s
 	// Create/update the agent (published defaults to false in the service layer)
 	createdAgent, err := registry.CreateAgent(ctx, &input.Body)
 	if err != nil {
+		if errors.Is(err, database.ErrNotFound) || errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
+			return nil, huma.Error404NotFound("Not found")
+		}
 		return nil, huma.Error400BadRequest("Failed to create agent", err)
 	}
 
@@ -238,7 +244,7 @@ func createAgentHandler(ctx context.Context, input *CreateAgentInput, registry s
 
 // RegisterAgentsCreateEndpoint registers the public agents create/update endpoint at /agents/publish
 // This endpoint creates or updates an agent in the registry (published defaults to false)
-func RegisterAgentsCreateEndpoint(api huma.API, pathPrefix string, registry service.RegistryService, authz auth.Authorizer) {
+func RegisterAgentsCreateEndpoint(api huma.API, pathPrefix string, registry service.RegistryService) {
 	huma.Register(api, huma.Operation{
 		OperationID: "create-agent" + strings.ReplaceAll(pathPrefix, "/", "-"),
 		Method:      http.MethodPost,
@@ -279,6 +285,9 @@ func RegisterAdminAgentsCreateEndpoint(api huma.API, pathPrefix string, registry
 		// Create/update the agent (published defaults to false in the service layer)
 		createdAgent, err := registry.CreateAgent(ctx, &input.Body)
 		if err != nil {
+			if errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
+				return nil, huma.Error404NotFound("Not found")
+			}
 			return nil, huma.Error400BadRequest("Failed to create agent", err)
 		}
 
@@ -310,7 +319,7 @@ func RegisterAgentsPublishStatusEndpoints(api huma.API, pathPrefix string, regis
 
 		// Call the service to publish the agent
 		if err := registry.PublishAgent(ctx, agentName, version); err != nil {
-			if errors.Is(err, database.ErrNotFound) {
+			if errors.Is(err, database.ErrNotFound) || errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
 				return nil, huma.Error404NotFound("Agent not found")
 			}
 			return nil, huma.Error500InternalServerError("Failed to publish agent", err)
@@ -344,7 +353,7 @@ func RegisterAgentsPublishStatusEndpoints(api huma.API, pathPrefix string, regis
 
 		// Call the service to unpublish the agent
 		if err := registry.UnpublishAgent(ctx, agentName, version); err != nil {
-			if errors.Is(err, database.ErrNotFound) {
+			if errors.Is(err, database.ErrNotFound) || errors.Is(err, auth.ErrForbidden) || errors.Is(err, auth.ErrUnauthenticated) {
 				return nil, huma.Error404NotFound("Agent not found")
 			}
 			return nil, huma.Error500InternalServerError("Failed to unpublish agent", err)

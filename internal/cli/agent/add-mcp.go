@@ -9,6 +9,7 @@ import (
 	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/project"
 	"github.com/agentregistry-dev/agentregistry/internal/cli/agent/tui"
 	"github.com/agentregistry-dev/agentregistry/internal/utils"
+	"github.com/agentregistry-dev/agentregistry/pkg/models"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 )
@@ -71,21 +72,21 @@ func addMcpCmd(name string) error {
 	}
 
 	// If flags provided, build non-interactively; else run wizard
-	var res common.McpServerType
+	var res models.McpServerType
 	if remoteURL != "" || command != "" || image != "" || build != "" || registryURL != "" || registryServerName != "" {
 		if remoteURL != "" {
 			headerMap, err := utils.ParseKeyValuePairs(headers)
 			if err != nil {
 				return fmt.Errorf("failed to parse headers: %w", err)
 			}
-			res = common.McpServerType{
+			res = models.McpServerType{
 				Type:    "remote",
 				URL:     remoteURL,
 				Name:    name,
 				Headers: headerMap,
 			}
 		} else if registryURL != "" && registryServerName != "" {
-			res = common.McpServerType{
+			res = models.McpServerType{
 				Type:                       "registry",
 				Name:                       name,
 				RegistryURL:                registryURL,
@@ -98,7 +99,7 @@ func addMcpCmd(name string) error {
 			if image != "" && build != "" {
 				return fmt.Errorf("only one of --image or --build may be set")
 			}
-			res = common.McpServerType{
+			res = models.McpServerType{
 				Type:    "command",
 				Name:    name,
 				Command: command,
