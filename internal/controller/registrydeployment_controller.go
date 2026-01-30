@@ -343,7 +343,7 @@ func (r *RegistryDeploymentReconciler) convertCatalogToMCPServer(catalog *agentr
 	// For OCI registry, use identifier as the image
 	if pkg.RegistryType == "oci" {
 		image = pkg.Identifier
-		cmd = "" // OCI images have their own entrypoint
+		cmd = ""   // OCI images have their own entrypoint
 		args = nil // OCI images use their own CMD/ARGS
 	}
 
