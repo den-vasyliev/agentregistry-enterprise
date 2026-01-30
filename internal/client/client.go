@@ -736,4 +736,3 @@ type DeploymentResponse struct {
 	ResourceType string            `json:"resourceType"`
 	Runtime      string            `json:"runtime"`
 }
-
