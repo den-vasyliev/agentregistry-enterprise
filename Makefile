@@ -197,13 +197,15 @@ KO_REGISTRY_PREFIX ?= $(KO_REGISTRY)/$(KO_DOCKER_REPO)
 
 ko-server:
 	@echo "Building server image with ko..."
-	KO_DOCKER_REPO=$(KO_REGISTRY_PREFIX)/server ko build --local --tags=$(VERSION),latest cmd/server/main.go
-	@echo "✓ Server image built: $(KO_REGISTRY_PREFIX)/server:$(VERSION)"
+	mkdir -p bin/images
+	ko build --oci-layout-path=bin/images/server cmd/server/main.go
+	@echo "✓ Server image built: bin/images/server"
 
 ko-controller:
 	@echo "Building controller image with ko..."
-	KO_DOCKER_REPO=$(KO_REGISTRY_PREFIX)/controller ko build --local --tags=$(VERSION),latest cmd/controller/main.go
-	@echo "✓ Controller image built: $(KO_REGISTRY_PREFIX)/controller:$(VERSION)"
+	mkdir -p bin/images
+	ko build --oci-layout-path=bin/images/controller cmd/controller/main.go
+	@echo "✓ Controller image built: bin/images/controller"
 
 ko-build: ko-server ko-controller
 	@echo "✓ All images built with ko"
