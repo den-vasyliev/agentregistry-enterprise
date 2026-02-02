@@ -13,7 +13,7 @@ LDFLAGS := \
 
 LOCALARCH ?= $(shell uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
 
-.PHONY: help build test lint clean image push release version run fmt dev-ui
+.PHONY: help build build-ui build-controller test lint clean image push release version run fmt dev dev-ui ko-controller
 
 ##@ General
 
@@ -35,15 +35,20 @@ version: ## Show version information
 
 ##@ Development
 
-build: ## Build controller binary (includes embedded UI)
+build-ui: ## Build UI static export
 	@echo "Building UI..."
 	@cd ui && npm install && npm run build:export
+	@echo "✓ UI build complete: ui/out/"
+
+build-controller: ## Build controller binary only
 	@echo "Building controller binary..."
 	@CGO_ENABLED=0 GOOS=linux GOARCH=$(LOCALARCH) go build \
 		-ldflags "$(LDFLAGS)" \
 		-o bin/controller \
 		cmd/controller/main.go
-	@echo "✓ Build complete: bin/controller"
+	@echo "✓ Controller build complete: bin/controller"
+
+build: build-ui build-controller ## Build both UI and controller
 
 run: build ## Build and run controller locally
 	@echo "Running controller..."
@@ -93,18 +98,20 @@ fmt: ## Format Go code
 
 ##@ Container Images
 
+ko-controller: build-ui ## Build and push controller image using ko
+	@echo "Building and pushing controller image..."
+	@KO_DOCKER_REPO=$(REGISTRY) ko build --tags=$(BASE_VERSION),latest --bare cmd/controller/main.go
+	@echo "✓ Images pushed:"
+	@echo "  $(REGISTRY):$(BASE_VERSION)"
+	@echo "  $(REGISTRY):latest"
+
 image: build ## Build container image locally
 	@echo "Building container image..."
 	@mkdir -p bin/images
 	@KO_DOCKER_REPO=ko.local ko build --oci-layout-path=bin/images/controller cmd/controller/main.go
 	@echo "✓ Image built: bin/images/controller"
 
-push: ## Build and push container image to registry
-	@echo "Building and pushing image to $(REGISTRY)..."
-	@KO_DOCKER_REPO=$(REGISTRY) ko build --tags=$(BASE_VERSION),latest --bare cmd/controller/main.go
-	@echo "✓ Images pushed:"
-	@echo "  $(REGISTRY):$(BASE_VERSION)"
-	@echo "  $(REGISTRY):latest"
+push: ko-controller ## Alias for ko-controller (build and push to registry)
 
 ##@ Release
 
