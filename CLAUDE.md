@@ -106,26 +106,33 @@ kmcp.agentregistry.dev/v1alpha1:
 ## Build Commands
 
 ```bash
-# Build controller binary
-make build-controller
-
 # Build UI (static export)
 make build-ui
 
-# Build both
+# Build controller binary only
+make build-controller
+
+# Build both UI and controller
 make build
 
-# Run in development (controller + UI)
-make dev
+# Run in development mode
+make dev          # Controller only
+make dev-ui       # UI dev server only
 
 # Run tests
 make test
 
-# Run controller tests only
-make test-controller
+# Lint code
+make lint
 
-# Build container image
+# Format code
+make fmt
+
+# Build and push container image
 make ko-controller
+
+# Build container image locally
+make image
 ```
 
 ## Development Workflow
