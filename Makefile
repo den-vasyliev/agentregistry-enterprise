@@ -219,9 +219,6 @@ $(LOCALBIN):
 GOIMPORT = $(LOCALBIN)/goimports
 GOIMPORT_VERSION ?= v0.41
 
-GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
-GOLANGCI_LINT_VERSION ?= v2.8.0
-
 ENVTEST = $(LOCALBIN)/setup-envtest
 ENVTEST_VERSION ?= release-0.19
 
@@ -229,11 +226,6 @@ ENVTEST_VERSION ?= release-0.19
 goimports: $(GOIMPORT) ## Download goimports locally if necessary.
 $(GOIMPORT): $(LOCALBIN)
 	$(call go-install-tool,$(GOIMPORT),golang.org/x/tools/cmd/goimports,$(GOIMPORT_VERSION))
-
-.PHONY: golangci-lint
-golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
-$(GOLANGCI_LINT): $(LOCALBIN)
-	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
