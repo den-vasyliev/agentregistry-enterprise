@@ -975,6 +975,7 @@ class AdminApiClient {
     k8sResourceType?: string
     runtime: string
     namespace?: string
+    environment?: string
     isExternal?: boolean
   }>> {
     const queryParams = new URLSearchParams()
@@ -999,8 +1000,23 @@ class AdminApiClient {
       k8sResourceType: d.k8sResourceType,
       runtime: d.runtime || 'kubernetes',
       namespace: d.namespace,
+      environment: d.environment,
       isExternal: d.isExternal,
     }))
+  }
+
+  // List available environments from DiscoveryConfig
+  async listEnvironments(): Promise<Array<{
+    name: string
+    namespace: string
+    labels?: Record<string, string>
+  }>> {
+    const response = await fetch(`${this.baseUrl}/v0/environments`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch environments')
+    }
+    const data = await response.json()
+    return data.environments || []
   }
 
   // Remove a deployment
