@@ -46,13 +46,16 @@ func NewServer(c client.Client, cache cache.Cache, logger zerolog.Logger) *Serve
 
 	api := humago.New(mux, config)
 
+	// Check if auth should be disabled (for demo/dev)
+	authEnabled := os.Getenv("AGENTREGISTRY_DISABLE_AUTH") != "true"
+
 	s := &Server{
 		client:        c,
 		cache:         cache,
 		logger:        logger,
 		mux:           mux,
 		api:           api,
-		authEnabled:   true, // Auth enabled by default for security
+		authEnabled:   authEnabled,
 		allowedTokens: make(map[string]bool),
 	}
 
