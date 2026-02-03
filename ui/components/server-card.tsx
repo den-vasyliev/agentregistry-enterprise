@@ -100,7 +100,7 @@ export function ServerCard({ server, onDelete, onPublish, onDeploy, onApprove, o
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-semibold text-lg">{serverData.title || serverData.name}</h3>
               <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs">
-                MCP Server
+                {serverData.remotes && serverData.remotes.length > 0 ? "Remote MCP" : "MCP Server"}
               </Badge>
               <Tooltip>
                 <TooltipTrigger asChild>
