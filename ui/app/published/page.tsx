@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { adminApiClient, createAuthenticatedClient, ServerResponse, SkillResponse, AgentResponse } from "@/lib/admin-api"
-import { Trash2, AlertCircle, Calendar, Package, Rocket, Plus, Search, LogIn, BadgeCheck, Bot, Zap } from "lucide-react"
+import { Trash2, AlertCircle, Calendar, Package, Rocket, Plus, Search, BadgeCheck, Bot, Zap } from "lucide-react"
 import MCPIcon from "@/components/icons/mcp"
 import { SubmitResourceDialog } from "@/components/submit-resource-dialog"
 import { ServerDetail } from "@/components/server-detail"
@@ -58,9 +58,11 @@ export default function PublishedPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [unpublishing, setUnpublishing] = useState(false)
+  const [publishing, setPublishing] = useState(false)
   const [deploying, setDeploying] = useState(false)
   const [deployRuntime] = useState<'kubernetes'>('kubernetes')
   const [itemToUnpublish, setItemToUnpublish] = useState<{ name: string, version: string, type: 'server' | 'skill' | 'agent' } | null>(null)
+  const [itemToPublish, setItemToPublish] = useState<{ name: string, version: string, type: 'server' | 'skill' | 'agent' } | null>(null)
   const [itemToDeploy, setItemToDeploy] = useState<{ name: string, version: string, type: 'server' | 'agent' } | null>(null)
   const [selectedServer, setSelectedServer] = useState<ServerResponse | null>(null)
   const [selectedSkill, setSelectedSkill] = useState<SkillResponse | null>(null)
@@ -70,6 +72,7 @@ export default function PublishedPage() {
   const [currentPageServers, setCurrentPageServers] = useState(1)
   const [currentPageSkills, setCurrentPageSkills] = useState(1)
   const [currentPageAgents, setCurrentPageAgents] = useState(1)
+  const [submitResourceDialogOpen, setSubmitResourceDialogOpen] = useState(false)
   const itemsPerPage = 5
 
   const fetchPublished = async () => {
@@ -139,26 +142,32 @@ export default function PublishedPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Filter by search query
+  // Filter by search query and sort by name for stable ordering
   useEffect(() => {
     const query = searchQuery.toLowerCase()
     setFilteredServers(
-      servers.filter(s =>
-        s.server.name.toLowerCase().includes(query) ||
-        s.server.description?.toLowerCase().includes(query)
-      )
+      servers
+        .filter(s =>
+          s.server.name.toLowerCase().includes(query) ||
+          s.server.description?.toLowerCase().includes(query)
+        )
+        .sort((a, b) => a.server.name.localeCompare(b.server.name))
     )
     setFilteredSkills(
-      skills.filter(s =>
-        s.skill.name.toLowerCase().includes(query) ||
-        s.skill.description?.toLowerCase().includes(query)
-      )
+      skills
+        .filter(s =>
+          s.skill.name.toLowerCase().includes(query) ||
+          s.skill.description?.toLowerCase().includes(query)
+        )
+        .sort((a, b) => a.skill.name.localeCompare(b.skill.name))
     )
     setFilteredAgents(
-      agents.filter(a =>
-        a.agent.name.toLowerCase().includes(query) ||
-        a.agent.description?.toLowerCase().includes(query)
-      )
+      agents
+        .filter(a =>
+          a.agent.name.toLowerCase().includes(query) ||
+          a.agent.description?.toLowerCase().includes(query)
+        )
+        .sort((a, b) => a.agent.name.localeCompare(b.agent.name))
     )
   }, [searchQuery, servers, skills, agents])
 
@@ -177,10 +186,6 @@ export default function PublishedPage() {
   }
 
   const handleDeploy = async (name: string, version: string, type: 'server' | 'agent') => {
-    if (!session) {
-      toast.error("Please sign in to deploy resources")
-      return
-    }
     setItemToDeploy({ name, version, type })
   }
 
@@ -245,37 +250,40 @@ export default function PublishedPage() {
   }
 
   const handlePublish = async (server: ServerResponse) => {
-    try {
-      const client = adminApiClient
-      await client.publishServerStatus(server.server.name, server.server.version)
-      await fetchPublished() // Refresh data
-      toast.success(`Successfully published ${server.server.name}`)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to publish server")
-    }
+    setItemToPublish({ name: server.server.name, version: server.server.version, type: 'server' })
   }
 
   const handlePublishSkill = async (skill: SkillResponse) => {
-    try {
-      const client = adminApiClient
-      await client.publishSkillStatus(skill.skill.name, skill.skill.version)
-      await fetchPublished() // Refresh data
-      toast.success(`Successfully published ${skill.skill.name}`)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to publish skill")
-    }
+    setItemToPublish({ name: skill.skill.name, version: skill.skill.version, type: 'skill' })
   }
 
   const handlePublishAgent = async (agentResponse: AgentResponse) => {
     const { agent } = agentResponse
+    setItemToPublish({ name: agent.name, version: agent.version, type: 'agent' })
+  }
+
+  const confirmPublish = async () => {
+    if (!itemToPublish) return
 
     try {
+      setPublishing(true)
       const client = adminApiClient
-      await client.publishAgentStatus(agent.name, agent.version)
+
+      if (itemToPublish.type === 'server') {
+        await client.publishServerStatus(itemToPublish.name, itemToPublish.version)
+      } else if (itemToPublish.type === 'skill') {
+        await client.publishSkillStatus(itemToPublish.name, itemToPublish.version)
+      } else if (itemToPublish.type === 'agent') {
+        await client.publishAgentStatus(itemToPublish.name, itemToPublish.version)
+      }
+
+      setItemToPublish(null)
+      toast.success(`Successfully published ${itemToPublish.name}`)
       await fetchPublished() // Refresh data
-      toast.success(`Successfully published ${agent.name}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to publish agent")
+      toast.error(err instanceof Error ? err.message : 'Failed to publish resource')
+    } finally {
+      setPublishing(false)
     }
   }
 
@@ -459,18 +467,13 @@ export default function PublishedPage() {
 
             {/* Action Button */}
             <div className="ml-auto">
-              <SubmitResourceDialog
-                trigger={
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Submit Resource
-                  </Button>
-                }
-                onSubmitted={() => {
-                  // Refresh the list
-                  fetchPublished()
-                }}
-              />
+              <Button
+                className="gap-2"
+                onClick={() => setSubmitResourceDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Submit Resource
+              </Button>
             </div>
           </div>
 
@@ -536,6 +539,9 @@ export default function PublishedPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-3">
                             <h3 className="text-xl font-semibold">{server.name}</h3>
+                            <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                              {server.remotes && server.remotes.length > 0 ? "Remote MCP Server" : "MCP Server"}
+                            </Badge>
                             {deployed ? (
                               <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20">
                                 Running
@@ -578,11 +584,8 @@ export default function PublishedPage() {
                               handleDeploy(server.name, server.version, 'server')
                             }}
                             disabled={deploying || deployed}
-                            title={!session ? "Sign in to deploy" : undefined}
                           >
-                            {!session ? (
-                              <><LogIn className="h-4 w-4 mr-2" />Sign in to deploy</>
-                            ) : deployed ? (
+                            {deployed ? (
                               <><Rocket className="h-4 w-4 mr-2" />Already Deployed</>
                             ) : (
                               <><Rocket className="h-4 w-4 mr-2" />Deploy</>
@@ -653,6 +656,9 @@ export default function PublishedPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-3">
                             <h3 className="text-xl font-semibold">{agent.name}</h3>
+                            <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
+                              Agent
+                            </Badge>
                             {deployed ? (
                               <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20">
                                 Running
@@ -695,11 +701,8 @@ export default function PublishedPage() {
                               handleDeploy(agent.name, agent.version, 'agent')
                             }}
                             disabled={deploying || deployed}
-                            title={!session ? "Sign in to deploy" : undefined}
                           >
-                            {!session ? (
-                              <><LogIn className="h-4 w-4 mr-2" />Sign in to deploy</>
-                            ) : deployed ? (
+                            {deployed ? (
                               <><Rocket className="h-4 w-4 mr-2" />Already Deployed</>
                             ) : (
                               <><Rocket className="h-4 w-4 mr-2" />Deploy</>
@@ -769,6 +772,9 @@ export default function PublishedPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-3">
                             <h3 className="text-xl font-semibold">{skill.title || skill.name}</h3>
+                            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+                              Skill
+                            </Badge>
                           </div>
 
                           <p className="text-sm text-muted-foreground mb-3">{skill.description}</p>
@@ -838,6 +844,37 @@ export default function PublishedPage() {
         </Tabs>
       </div>
 
+      {/* Publish Confirmation Dialog */}
+      <Dialog open={!!itemToPublish} onOpenChange={(open) => !open && setItemToPublish(null)}>
+        <DialogContent onClose={() => setItemToPublish(null)}>
+          <DialogHeader>
+            <DialogTitle>Publish Resource</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to publish <strong>{itemToPublish?.name}</strong> (version {itemToPublish?.version})?
+              <br />
+              <br />
+              This will make the resource visible to public users in the catalog.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setItemToPublish(null)}
+              disabled={publishing}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              onClick={confirmPublish}
+              disabled={publishing}
+            >
+              {publishing ? 'Publishing...' : 'Publish'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Unpublish Confirmation Dialog */}
       <Dialog open={!!itemToUnpublish} onOpenChange={(open) => !open && setItemToUnpublish(null)}>
         <DialogContent onClose={() => setItemToUnpublish(null)}>
@@ -903,6 +940,12 @@ export default function PublishedPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Submit Resource Dialog (GitOps Workflow) */}
+      <SubmitResourceDialog
+        open={submitResourceDialogOpen}
+        onOpenChange={setSubmitResourceDialogOpen}
+      />
     </main>
   )
 }

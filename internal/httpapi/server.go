@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -44,18 +46,22 @@ func NewServer(c client.Client, cache cache.Cache, logger zerolog.Logger) *Serve
 
 	api := humago.New(mux, config)
 
+	// Check if auth should be disabled (for demo/dev)
+	authEnabled := os.Getenv("AGENTREGISTRY_DISABLE_AUTH") != "true"
+
 	s := &Server{
 		client:        c,
 		cache:         cache,
 		logger:        logger,
 		mux:           mux,
 		api:           api,
-		authEnabled:   false, // Auth disabled by default - can be enabled via env var
+		authEnabled:   authEnabled,
 		allowedTokens: make(map[string]bool),
 	}
 
-	// TODO: Load allowed tokens from config/secret
-	// For now, auth is disabled
+	// Load allowed tokens from environment variable
+	// Format: comma-separated tokens in AGENTREGISTRY_API_TOKENS
+	s.loadTokensFromEnv()
 
 	s.registerRoutes()
 
@@ -98,6 +104,44 @@ func (s *Server) authMiddleware(ctx huma.Context, next func(huma.Context)) {
 
 	// Token valid, continue
 	next(ctx)
+}
+
+// loadTokensFromEnv loads API tokens from Kubernetes Secret
+// Reads from Secret "agentregistry-api-tokens" in the controller namespace
+// Each key in the secret data is treated as a valid token
+func (s *Server) loadTokensFromEnv() {
+	// Get namespace from environment (set by downward API in deployment)
+	namespace := os.Getenv("POD_NAMESPACE")
+	if namespace == "" {
+		namespace = "agentregistry" // default namespace
+	}
+
+	// Try to read tokens from Secret
+	secret := &corev1.Secret{}
+	err := s.client.Get(context.Background(), client.ObjectKey{
+		Namespace: namespace,
+		Name:      "agentregistry-api-tokens",
+	}, secret)
+
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			s.logger.Warn().Msg("Secret 'agentregistry-api-tokens' not found - admin API will reject all requests")
+		} else {
+			s.logger.Error().Err(err).Msg("failed to read API tokens secret")
+		}
+		return
+	}
+
+	// Each key in the secret is a token name, value is the token
+	for name, tokenBytes := range secret.Data {
+		token := strings.TrimSpace(string(tokenBytes))
+		if token != "" {
+			s.allowedTokens[token] = true
+			s.logger.Debug().Str("name", name).Msg("loaded API token")
+		}
+	}
+
+	s.logger.Info().Int("count", len(s.allowedTokens)).Msg("loaded API tokens from secret")
 }
 
 // registerRoutes registers all HTTP routes

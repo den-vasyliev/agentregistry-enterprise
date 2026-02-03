@@ -12,6 +12,15 @@ git push origin HEAD:enterprise-controller
 
 This repository uses `enterprise-controller` as the working branch, not `main`.
 
+**IMPORTANT: Commit Messages**
+
+Do NOT add the following line to commit messages:
+```
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+```
+
+This project does not use co-author attribution in commits.
+
 ## Project Overview
 
 Agent Registry is a **Kubernetes-native controller** that provides a centralized registry to securely curate, discover, deploy, and manage agentic infrastructure including MCP servers, agents, and skills.
@@ -81,9 +90,9 @@ The controller is a **single binary** that runs:
    - `DiscoveryConfigReconciler` - Multi-cluster discovery with workload identity (see [docs/AUTODISCOVERY.md](docs/AUTODISCOVERY.md))
 
 2. **HTTP API Server** (embedded, port 8080):
-   - Public endpoints: `/v0/servers`, `/v0/agents`, `/v0/skills`, `/v0/models`
-   - Admin endpoints: `/admin/v0/*` for management
-   - **Authentication disabled by default** (`authEnabled: false`)
+   - Public endpoints: `/v0/servers`, `/v0/agents`, `/v0/skills`, `/v0/models` (read-only)
+   - Admin endpoints: `/admin/v0/*` for management (requires auth)
+   - **Authentication enabled by default** - tokens read from Secret `agentregistry-api-tokens`
 
 3. **Metrics & Health:**
    - Metrics: `:8081`

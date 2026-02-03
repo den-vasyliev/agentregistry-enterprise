@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { adminApiClient, createAuthenticatedClient } from "@/lib/admin-api"
-import { Trash2, AlertCircle, Calendar, Package, Copy, Check, Search, LogIn, Bot } from "lucide-react"
+import { Trash2, AlertCircle, Calendar, Package, Copy, Check, Search, Bot } from "lucide-react"
 import MCPIcon from "@/components/icons/mcp"
 import { toast } from "sonner"
 import {
@@ -30,6 +30,7 @@ type DeploymentResponse = {
   config: Record<string, string>
   preferRemote: boolean
   resourceType: string // "mcp" or "agent"
+  k8sResourceType?: string // "MCPServer", "RemoteMCPServer", "Agent"
   runtime: string
   isExternal?: boolean // true if not managed by registry
 }
@@ -83,22 +84,20 @@ export default function DeployedPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Filter deployments by search query
+  // Filter deployments by search query and sort by name for stable ordering
   useEffect(() => {
     const query = searchQuery.toLowerCase()
     setFilteredDeployments(
-      deployments.filter(d =>
-        d.serverName.toLowerCase().includes(query) ||
-        d.version.toLowerCase().includes(query)
-      )
+      deployments
+        .filter(d =>
+          d.serverName.toLowerCase().includes(query) ||
+          d.version.toLowerCase().includes(query)
+        )
+        .sort((a, b) => a.serverName.localeCompare(b.serverName))
     )
   }, [searchQuery, deployments])
 
   const handleRemove = async (serverName: string, version: string, resourceType: string) => {
-    if (!session) {
-      toast.error("Please sign in to remove deployments")
-      return
-    }
     setServerToRemove({ name: serverName, version, resourceType })
   }
 
@@ -316,6 +315,9 @@ export default function DeployedPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
                           <h3 className="text-xl font-semibold">{item.serverName}</h3>
+                          <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                            {item.k8sResourceType === "RemoteMCPServer" ? "Remote MCP Server" : "MCP Server"}
+                          </Badge>
                           <Badge variant="outline">
                             {item.runtime || "local"}
                           </Badge>
@@ -326,6 +328,20 @@ export default function DeployedPage() {
                           ) : (
                             <Badge variant="secondary" className="bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 border-purple-500/20">
                               External
+                            </Badge>
+                          )}
+                          {item.status && (
+                            <Badge
+                              variant="outline"
+                              className={
+                                item.status === "Running"
+                                  ? "bg-green-500/10 text-green-600 border-green-500/20"
+                                  : item.status === "Failed"
+                                  ? "bg-red-500/10 text-red-600 border-red-500/20"
+                                  : "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                              }
+                            >
+                              {item.status}
                             </Badge>
                           )}
                         </div>
@@ -367,18 +383,13 @@ export default function DeployedPage() {
 
                       {!item.isExternal && (
                         <Button
-                          variant={session ? "destructive" : "outline"}
+                          variant="destructive"
                           size="sm"
                           className="ml-4"
                           onClick={() => handleRemove(item.serverName, item.version, item.resourceType)}
                           disabled={removing}
-                          title={!session ? "Sign in to remove" : undefined}
                         >
-                          {session ? (
-                            <><Trash2 className="h-4 w-4 mr-2" />Remove</>
-                          ) : (
-                            <><LogIn className="h-4 w-4 mr-2" />Sign in to remove</>
-                          )}
+                          <Trash2 className="h-4 w-4 mr-2" />Remove
                         </Button>
                       )}
                     </div>
@@ -418,6 +429,9 @@ export default function DeployedPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
                           <h3 className="text-xl font-semibold">{item.serverName}</h3>
+                          <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
+                            Agent
+                          </Badge>
                           <Badge variant="outline">
                             {item.runtime || "local"}
                           </Badge>
@@ -428,6 +442,20 @@ export default function DeployedPage() {
                           ) : (
                             <Badge variant="secondary" className="bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 border-purple-500/20">
                               External
+                            </Badge>
+                          )}
+                          {item.status && (
+                            <Badge
+                              variant="outline"
+                              className={
+                                item.status === "Running"
+                                  ? "bg-green-500/10 text-green-600 border-green-500/20"
+                                  : item.status === "Failed"
+                                  ? "bg-red-500/10 text-red-600 border-red-500/20"
+                                  : "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
+                              }
+                            >
+                              {item.status}
                             </Badge>
                           )}
                         </div>
@@ -469,18 +497,13 @@ export default function DeployedPage() {
 
                       {!item.isExternal && (
                         <Button
-                          variant={session ? "destructive" : "outline"}
+                          variant="destructive"
                           size="sm"
                           className="ml-4"
                           onClick={() => handleRemove(item.serverName, item.version, item.resourceType)}
                           disabled={removing}
-                          title={!session ? "Sign in to remove" : undefined}
                         >
-                          {session ? (
-                            <><Trash2 className="h-4 w-4 mr-2" />Remove</>
-                          ) : (
-                            <><LogIn className="h-4 w-4 mr-2" />Sign in to remove</>
-                          )}
+                          <Trash2 className="h-4 w-4 mr-2" />Remove
                         </Button>
                       )}
                     </div>
