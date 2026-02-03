@@ -540,7 +540,7 @@ export default function PublishedPage() {
                           <div className="flex items-center gap-3 mb-3">
                             <h3 className="text-xl font-semibold">{server.name}</h3>
                             <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
-                              MCP Server
+                              {server.remotes && server.remotes.length > 0 ? "Remote MCP Server" : "MCP Server"}
                             </Badge>
                             {deployed ? (
                               <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20">
