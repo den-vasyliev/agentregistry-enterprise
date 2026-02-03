@@ -46,6 +46,7 @@ type DeploymentJSON struct {
 	PreferRemote    bool              `json:"preferRemote,omitempty"`
 	Config          map[string]string `json:"config,omitempty"`
 	Namespace       string            `json:"namespace,omitempty"`
+	Environment     string            `json:"environment,omitempty"`     // Environment label (dev, staging, prod, etc.)
 	Status          string            `json:"status,omitempty"`
 	DeployedAt      *time.Time        `json:"deployedAt,omitempty"`
 	UpdatedAt       *time.Time        `json:"updatedAt,omitempty"`
@@ -277,10 +278,10 @@ func (h *DeploymentHandler) createDeployment(ctx context.Context, input *CreateD
 	// Always use kubernetes runtime
 	runtime := agentregistryv1alpha1.RuntimeTypeKubernetes
 
-	// Default namespace if not provided
+	// Default namespace if not provided - use agentregistry namespace
 	namespace := input.Body.Namespace
 	if namespace == "" {
-		namespace = "default"
+		namespace = "agentregistry"
 	}
 
 	deployment := &agentregistryv1alpha1.RegistryDeployment{
@@ -425,6 +426,11 @@ func (h *DeploymentHandler) convertToDeploymentJSON(d *agentregistryv1alpha1.Reg
 		IsExternal:   false,
 	}
 
+	// Extract environment from labels
+	if env, ok := d.Labels["environment"]; ok {
+		deployment.Environment = env
+	}
+
 	// Extract K8s resource type from managed resources
 	if len(d.Status.ManagedResources) > 0 {
 		deployment.K8sResourceType = d.Status.ManagedResources[0].Kind
@@ -456,7 +462,7 @@ func (h *DeploymentHandler) convertMCPServerToDeploymentJSON(mcp *kmcpv1alpha1.M
 	}
 
 	createdAt := mcp.CreationTimestamp.Time
-	return DeploymentJSON{
+	deployment := DeploymentJSON{
 		ResourceName:    mcp.Name,
 		Version:         "external",
 		ResourceType:    "mcp",
@@ -467,6 +473,13 @@ func (h *DeploymentHandler) convertMCPServerToDeploymentJSON(mcp *kmcpv1alpha1.M
 		DeployedAt:      &createdAt,
 		IsExternal:      true,
 	}
+
+	// Extract environment from labels
+	if env, ok := mcp.Labels["environment"]; ok {
+		deployment.Environment = env
+	}
+
+	return deployment
 }
 
 // convertAgentToDeploymentJSON converts a KAgent Agent to DeploymentJSON (as external)
@@ -482,7 +495,7 @@ func (h *DeploymentHandler) convertAgentToDeploymentJSON(agent *kagentv1alpha2.A
 	}
 
 	createdAt := agent.CreationTimestamp.Time
-	return DeploymentJSON{
+	deployment := DeploymentJSON{
 		ResourceName:    agent.Name,
 		Version:         "external",
 		ResourceType:    "agent",
@@ -493,4 +506,11 @@ func (h *DeploymentHandler) convertAgentToDeploymentJSON(agent *kagentv1alpha2.A
 		DeployedAt:      &createdAt,
 		IsExternal:      true,
 	}
+
+	// Extract environment from labels
+	if env, ok := agent.Labels["environment"]; ok {
+		deployment.Environment = env
+	}
+
+	return deployment
 }
