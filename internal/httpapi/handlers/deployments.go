@@ -38,18 +38,19 @@ func NewDeploymentHandler(c client.Client, cache cache.Cache, logger zerolog.Log
 
 // Deployment response types
 type DeploymentJSON struct {
-	ResourceName string            `json:"resourceName"`
-	Version      string            `json:"version"`
-	ResourceType string            `json:"resourceType"`
-	Runtime      string            `json:"runtime"`
-	PreferRemote bool              `json:"preferRemote,omitempty"`
-	Config       map[string]string `json:"config,omitempty"`
-	Namespace    string            `json:"namespace,omitempty"`
-	Status       string            `json:"status,omitempty"`
-	DeployedAt   *time.Time        `json:"deployedAt,omitempty"`
-	UpdatedAt    *time.Time        `json:"updatedAt,omitempty"`
-	Message      string            `json:"message,omitempty"`
-	IsExternal   bool              `json:"isExternal,omitempty"`
+	ResourceName      string            `json:"resourceName"`
+	Version           string            `json:"version"`
+	ResourceType      string            `json:"resourceType"` // "mcp" or "agent" (catalog type)
+	K8sResourceType   string            `json:"k8sResourceType,omitempty"` // "MCPServer", "RemoteMCPServer", "Agent" (actual K8s resource)
+	Runtime           string            `json:"runtime"`
+	PreferRemote      bool              `json:"preferRemote,omitempty"`
+	Config            map[string]string `json:"config,omitempty"`
+	Namespace         string            `json:"namespace,omitempty"`
+	Status            string            `json:"status,omitempty"`
+	DeployedAt        *time.Time        `json:"deployedAt,omitempty"`
+	UpdatedAt         *time.Time        `json:"updatedAt,omitempty"`
+	Message           string            `json:"message,omitempty"`
+	IsExternal        bool              `json:"isExternal,omitempty"`
 }
 
 type DeploymentResponse struct {
@@ -424,6 +425,11 @@ func (h *DeploymentHandler) convertToDeploymentJSON(d *agentregistryv1alpha1.Reg
 		IsExternal:   false,
 	}
 
+	// Extract K8s resource type from managed resources
+	if len(d.Status.ManagedResources) > 0 {
+		deployment.K8sResourceType = d.Status.ManagedResources[0].Kind
+	}
+
 	if d.Status.DeployedAt != nil {
 		t := d.Status.DeployedAt.Time
 		deployment.DeployedAt = &t
@@ -451,14 +457,15 @@ func (h *DeploymentHandler) convertMCPServerToDeploymentJSON(mcp *kmcpv1alpha1.M
 
 	createdAt := mcp.CreationTimestamp.Time
 	return DeploymentJSON{
-		ResourceName: mcp.Name,
-		Version:      "external",
-		ResourceType: "mcp",
-		Runtime:      "kubernetes",
-		Namespace:    mcp.Namespace,
-		Status:       status,
-		DeployedAt:   &createdAt,
-		IsExternal:   true,
+		ResourceName:    mcp.Name,
+		Version:         "external",
+		ResourceType:    "mcp",
+		K8sResourceType: "MCPServer",
+		Runtime:         "kubernetes",
+		Namespace:       mcp.Namespace,
+		Status:          status,
+		DeployedAt:      &createdAt,
+		IsExternal:      true,
 	}
 }
 
@@ -476,9 +483,10 @@ func (h *DeploymentHandler) convertAgentToDeploymentJSON(agent *kagentv1alpha2.A
 
 	createdAt := agent.CreationTimestamp.Time
 	return DeploymentJSON{
-		ResourceName: agent.Name,
-		Version:      "external",
-		ResourceType: "agent",
+		ResourceName:    agent.Name,
+		Version:         "external",
+		ResourceType:    "agent",
+		K8sResourceType: "Agent",
 		Runtime:      "kubernetes",
 		Namespace:    agent.Namespace,
 		Status:       status,

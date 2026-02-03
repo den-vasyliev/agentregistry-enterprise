@@ -30,6 +30,7 @@ type DeploymentResponse = {
   config: Record<string, string>
   preferRemote: boolean
   resourceType: string // "mcp" or "agent"
+  k8sResourceType?: string // "MCPServer", "RemoteMCPServer", "Agent"
   runtime: string
   isExternal?: boolean // true if not managed by registry
 }
@@ -315,7 +316,7 @@ export default function DeployedPage() {
                         <div className="flex items-center gap-3 mb-3">
                           <h3 className="text-xl font-semibold">{item.serverName}</h3>
                           <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
-                            MCP Server
+                            {item.k8sResourceType === "RemoteMCPServer" ? "Remote MCP Server" : "MCP Server"}
                           </Badge>
                           <Badge variant="outline">
                             {item.runtime || "local"}
