@@ -394,7 +394,10 @@ func (r *RegistryDeploymentReconciler) convertCatalogToAgent(catalog *agentregis
 	}
 
 	// Build environment variables
-	env := maps.Clone(deployment.Spec.Config)
+	env := make(map[string]string)
+	if deployment.Spec.Config != nil {
+		env = maps.Clone(deployment.Spec.Config)
+	}
 
 	// Set standard agent environment variables
 	env["KAGENT_URL"] = "http://localhost"

@@ -27,7 +27,7 @@ LDFLAGS := \
 
 LOCALARCH ?= $(shell uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
 
-.PHONY: help build build-ui build-controller test lint clean image push release version run fmt dev dev-ui ko-controller
+.PHONY: help build build-ui build-controller test lint clean image push release version run fmt dev dev-ui ko-controller demo demo-stop
 
 ##@ General
 
@@ -81,6 +81,22 @@ dev: ## Run both controller and UI in development mode
 	go run -ldflags "$(LDFLAGS)" cmd/controller/main.go & \
 	cd ui && NEXT_PUBLIC_API_URL=http://localhost:8080 npm run dev & \
 	wait
+
+demo: envtest ## Run demo environment with envtest, sample resources, and UI
+	@echo "Starting demo environment with envtest..."
+	@KUBEBUILDER_ASSETS="$$($(LOCALBIN)/setup-envtest use --bin-dir $(LOCALBIN) -p path)" \
+		go run -ldflags "$(LDFLAGS)" cmd/demo/main.go
+
+demo-stop: ## Stop demo environment
+	@echo "Stopping demo environment..."
+	@pkill -f "cmd/demo/main.go" 2>/dev/null || true
+	@lsof -ti:8080 | xargs kill -9 2>/dev/null || true
+	@pkill -f "next dev" 2>/dev/null || true
+	@lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+	@pkill -f "etcd" 2>/dev/null || true
+	@pkill -f "kube-apiserver" 2>/dev/null || true
+	@rm -f demo-kubeconfig.yaml /tmp/demo-kubeconfig-*.yaml 2>/dev/null || true
+	@echo "Demo stopped"
 
 dev-ui: ## Run Next.js UI dev server (for UI development)
 	@echo "Starting Next.js dev server..."
