@@ -300,11 +300,11 @@ func seed(ctx context.Context, c client.Client) error {
 		return fmt.Errorf("create inventory skill: %w", err)
 	}
 
-	// models (cluster-scoped)
+	// models (namespace-scoped)
 	models := []*agentregistryv1alpha1.ModelCatalog{
-		{ObjectMeta: metav1.ObjectMeta{Name: "claude-3-opus-prod"}, Spec: agentregistryv1alpha1.ModelCatalogSpec{Name: "claude-3-opus-prod", Provider: "Anthropic", Model: "claude-3-opus-20240229", Description: "Claude 3 Opus"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "gpt-4-dev"}, Spec: agentregistryv1alpha1.ModelCatalogSpec{Name: "gpt-4-dev", Provider: "OpenAI", Model: "gpt-4-turbo", Description: "GPT-4 Turbo"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "llama3-local"}, Spec: agentregistryv1alpha1.ModelCatalogSpec{Name: "llama3-local", Provider: "Ollama", Model: "llama3:70b", BaseURL: "http://localhost:11434", Description: "Local Llama 3"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "claude-3-opus-prod", Namespace: ns}, Spec: agentregistryv1alpha1.ModelCatalogSpec{Name: "claude-3-opus-prod", Provider: "Anthropic", Model: "claude-3-opus-20240229", Description: "Claude 3 Opus"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "gpt-4-dev", Namespace: ns}, Spec: agentregistryv1alpha1.ModelCatalogSpec{Name: "gpt-4-dev", Provider: "OpenAI", Model: "gpt-4-turbo", Description: "GPT-4 Turbo"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "llama3-local", Namespace: ns}, Spec: agentregistryv1alpha1.ModelCatalogSpec{Name: "llama3-local", Provider: "Ollama", Model: "llama3:70b", BaseURL: "http://localhost:11434", Description: "Local Llama 3"}},
 	}
 	for _, m := range models {
 		if err := c.Create(ctx, m); err != nil {
@@ -320,6 +320,7 @@ func seed(ctx context.Context, c client.Client) error {
 		m.Status.PublishedAt = &now
 		m.Status.Status = agentregistryv1alpha1.CatalogStatusActive
 		m.Status.Ready = true
+		m.Status.ManagementType = agentregistryv1alpha1.ManagementTypeManaged
 		if err := c.Status().Update(ctx, m); err != nil {
 			return err
 		}
@@ -428,6 +429,7 @@ func publishServers(ctx context.Context, c client.Client, servers []*agentregist
 		s.Status.IsLatest = true
 		s.Status.PublishedAt = now
 		s.Status.Status = agentregistryv1alpha1.CatalogStatusActive
+		s.Status.ManagementType = agentregistryv1alpha1.ManagementTypeManaged
 		if err := c.Status().Update(ctx, s); err != nil {
 			return err
 		}
@@ -450,6 +452,7 @@ func publishAgents(ctx context.Context, c client.Client, agents []*agentregistry
 		a.Status.IsLatest = true
 		a.Status.PublishedAt = now
 		a.Status.Status = agentregistryv1alpha1.CatalogStatusActive
+		a.Status.ManagementType = agentregistryv1alpha1.ManagementTypeManaged
 		if err := c.Status().Update(ctx, a); err != nil {
 			return err
 		}
@@ -472,6 +475,7 @@ func publishSkills(ctx context.Context, c client.Client, skills []*agentregistry
 		s.Status.IsLatest = true
 		s.Status.PublishedAt = now
 		s.Status.Status = agentregistryv1alpha1.CatalogStatusActive
+		s.Status.ManagementType = agentregistryv1alpha1.ManagementTypeManaged
 		if err := c.Status().Update(ctx, s); err != nil {
 			return err
 		}
