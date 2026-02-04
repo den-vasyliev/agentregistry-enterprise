@@ -529,10 +529,11 @@ func (r *DiscoveryConfigReconciler) handleMCPServerAdd(
 		if err := r.Create(ctx, &catalog); err != nil {
 			return err
 		}
-		// Set external management type and published status
+		// Set external management type, published status, and deployment info
 		catalog.Status.ManagementType = agentregistryv1alpha1.ManagementTypeExternal
 		catalog.Status.Published = true
 		catalog.Status.Status = agentregistryv1alpha1.CatalogStatusActive
+		syncDeploymentStatus(&catalog, mcpServer)
 		return r.Status().Update(ctx, &catalog)
 	} else if err != nil {
 		return err
@@ -543,14 +544,45 @@ func (r *DiscoveryConfigReconciler) handleMCPServerAdd(
 	if err := r.Update(ctx, existing); err != nil {
 		return err
 	}
-	// Ensure status is set for external resources
+	// Ensure status is set for external resources and sync deployment
+	needsUpdate := false
 	if existing.Status.ManagementType == "" {
 		existing.Status.ManagementType = agentregistryv1alpha1.ManagementTypeExternal
 		existing.Status.Published = true
 		existing.Status.Status = agentregistryv1alpha1.CatalogStatusActive
+		needsUpdate = true
+	}
+	if existing.Status.ManagementType == agentregistryv1alpha1.ManagementTypeExternal {
+		syncDeploymentStatus(existing, mcpServer)
+		needsUpdate = true
+	}
+	if needsUpdate {
 		return r.Status().Update(ctx, existing)
 	}
 	return nil
+}
+
+// syncDeploymentStatus syncs deployment status from kagent MCPServer to catalog
+func syncDeploymentStatus(catalog *agentregistryv1alpha1.MCPServerCatalog, mcpServer *kmcpv1alpha1.MCPServer) {
+	ready := false
+	message := ""
+
+	for _, cond := range mcpServer.Status.Conditions {
+		if cond.Type == "Ready" {
+			ready = cond.Status == "True"
+			message = cond.Message
+			break
+		}
+	}
+
+	now := metav1.Now()
+	catalog.Status.Deployment = &agentregistryv1alpha1.DeploymentRef{
+		Namespace:   mcpServer.Namespace,
+		ServiceName: mcpServer.Name,
+		Ready:       ready,
+		Message:     message,
+		LastChecked: &now,
+	}
 }
 
 // handleAgentAdd creates/updates catalog entry for discovered Agent
