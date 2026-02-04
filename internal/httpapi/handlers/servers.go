@@ -732,8 +732,20 @@ func (h *ServerHandler) convertToServerResponse(s *agentregistryv1alpha1.MCPServ
 		}
 	}
 
-	// Note: deployment status is NOT included here.
-	// UI fetches actual status from /deployments endpoint which reads from RegistryDeployment/MCPServer/Agent resources.
+	// Include deployment status from catalog status
+	if s.Status.Deployment != nil {
+		resp.Meta.Deployment = &DeploymentInfo{
+			Namespace:   s.Status.Deployment.Namespace,
+			ServiceName: s.Status.Deployment.ServiceName,
+			URL:         s.Status.Deployment.URL,
+			Ready:       s.Status.Deployment.Ready,
+			Message:     s.Status.Deployment.Message,
+		}
+		if s.Status.Deployment.LastChecked != nil {
+			t := s.Status.Deployment.LastChecked.Time
+			resp.Meta.Deployment.LastChecked = &t
+		}
+	}
 
 	return resp
 }
