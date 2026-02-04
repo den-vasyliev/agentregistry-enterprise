@@ -105,14 +105,25 @@ func (r *AgentDiscoveryReconciler) buildCatalogFromAgent(agent *kagentv1alpha2.A
 		modelConfig = agent.Spec.Declarative.ModelConfig
 	}
 
+	// Determine environment from namespace
+	environment := getEnvironmentFromNamespace(agent.Namespace)
+
+	// Generate universal resource UID: name-env-ver
+	resourceUID := agentregistryv1alpha1.GenerateResourceUID(agentName, environment, version)
+
 	return agentregistryv1alpha1.AgentCatalog{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: catalogName,
 			Labels: map[string]string{
-				discoveryLabel:  "true",
-				sourceKindLabel: "Agent",
-				sourceNameLabel: agent.Name,
-				sourceNSLabel:   agent.Namespace,
+				discoveryLabel:                                 "true",
+				sourceKindLabel:                                "Agent",
+				sourceNameLabel:                                agent.Name,
+				sourceNSLabel:                                  agent.Namespace,
+				agentregistryv1alpha1.LabelResourceUID:         resourceUID,
+				agentregistryv1alpha1.LabelResourceName:        agentName,
+				agentregistryv1alpha1.LabelResourceVersion:     version,
+				agentregistryv1alpha1.LabelResourceEnvironment: environment,
+				agentregistryv1alpha1.LabelResourceSource:      agentregistryv1alpha1.ResourceSourceDiscovery,
 			},
 		},
 		Spec: agentregistryv1alpha1.AgentCatalogSpec{
