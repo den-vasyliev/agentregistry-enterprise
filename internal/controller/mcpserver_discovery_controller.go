@@ -138,14 +138,25 @@ func (r *MCPServerDiscoveryReconciler) buildCatalogFromMCPServer(mcpServer *kmcp
 	}
 	packages = append(packages, pkg)
 
+	// Determine environment from namespace
+	environment := getEnvironmentFromNamespace(mcpServer.Namespace)
+
+	// Generate universal resource UID: name-env-ver
+	resourceUID := agentregistryv1alpha1.GenerateResourceUID(mcpServer.Name, environment, version)
+
 	return agentregistryv1alpha1.MCPServerCatalog{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: catalogName,
 			Labels: map[string]string{
-				discoveryLabel:  "true",
-				sourceKindLabel: "MCPServer",
-				sourceNameLabel: mcpServer.Name,
-				sourceNSLabel:   mcpServer.Namespace,
+				discoveryLabel:                                 "true",
+				sourceKindLabel:                                "MCPServer",
+				sourceNameLabel:                                mcpServer.Name,
+				sourceNSLabel:                                  mcpServer.Namespace,
+				agentregistryv1alpha1.LabelResourceUID:         resourceUID,
+				agentregistryv1alpha1.LabelResourceName:        mcpServer.Name,
+				agentregistryv1alpha1.LabelResourceVersion:     version,
+				agentregistryv1alpha1.LabelResourceEnvironment: environment,
+				agentregistryv1alpha1.LabelResourceSource:      agentregistryv1alpha1.ResourceSourceDiscovery,
 			},
 		},
 		Spec: agentregistryv1alpha1.MCPServerCatalogSpec{

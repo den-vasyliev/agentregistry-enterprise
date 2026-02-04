@@ -91,6 +91,12 @@ export function AgentCard({ agent, onDelete, onPublish, onApprove, onReject, sho
               <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-xs">
                 Agent
               </Badge>
+              {/* External badge for discovered resources */}
+              {_meta?.isDiscovered && (
+                <Badge variant="outline" className="bg-teal-500/10 text-teal-600 border-teal-500/20 text-xs">
+                  External
+                </Badge>
+              )}
             </div>
             <div className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
               {agentData.framework && (

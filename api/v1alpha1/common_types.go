@@ -1,6 +1,9 @@
 package v1alpha1
 
 import (
+	"fmt"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -120,6 +123,60 @@ const (
 	// CatalogConditionPublished indicates whether the catalog entry is published
 	CatalogConditionPublished CatalogConditionType = "Published"
 )
+
+// Common label keys used across all catalog resources
+const (
+	// LabelResourceUID is the unique identifier for a resource in format "name-env-ver"
+	// This allows distinguishing same resources across environments and versions
+	LabelResourceUID = "agentregistry.dev/resource-uid"
+	// LabelResourceName is the canonical resource name
+	LabelResourceName = "agentregistry.dev/resource-name"
+	// LabelResourceVersion is the resource version
+	LabelResourceVersion = "agentregistry.dev/resource-version"
+	// LabelResourceEnvironment is the environment (dev, staging, prod, etc.)
+	LabelResourceEnvironment = "agentregistry.dev/resource-environment"
+	// LabelResourceSource indicates how the resource was created (discovery, manual, deployment)
+	LabelResourceSource = "agentregistry.dev/resource-source"
+	// LabelManagedBy indicates the managing component
+	LabelManagedBy = "agentregistry.dev/managed-by"
+)
+
+// ResourceSource values for LabelResourceSource
+const (
+	ResourceSourceDiscovery  = "discovery"
+	ResourceSourceManual     = "manual"
+	ResourceSourceDeployment = "deployment"
+	ResourceSourceImport     = "import"
+)
+
+// ManagementType indicates how the resource is managed
+type ManagementType string
+
+const (
+	// ManagementTypeExternal indicates the resource was discovered from an external cluster
+	// Status comes from the original resource, cannot be deployed
+	ManagementTypeExternal ManagementType = "external"
+	// ManagementTypeManaged indicates the resource was created in the catalog first
+	// Status comes from RegistryDeployment, can be deployed
+	ManagementTypeManaged ManagementType = "managed"
+)
+
+// GenerateResourceUID generates a unique resource identifier in format "name-env-ver"
+// This ensures uniqueness across environments and versions
+func GenerateResourceUID(name, environment, version string) string {
+	// Sanitize inputs (replace dots with dashes in version)
+	version = strings.ReplaceAll(version, ".", "-")
+	uid := fmt.Sprintf("%s-%s-%s", name, environment, version)
+	// Ensure lowercase and valid k8s label value
+	uid = strings.ToLower(uid)
+	uid = strings.ReplaceAll(uid, "_", "-")
+	uid = strings.ReplaceAll(uid, "/", "-")
+	// Trim if too long for label value (63 chars max)
+	if len(uid) > 63 {
+		uid = uid[:63]
+	}
+	return strings.Trim(uid, "-")
+}
 
 // CatalogCondition contains details for the current condition of this resource
 type CatalogCondition struct {
