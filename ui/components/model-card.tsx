@@ -98,6 +98,23 @@ export function ModelCard({ model, onDelete, onPublish, showDelete = false, show
                   {modelData.model}
                 </Badge>
               )}
+              {/* Deployment status badge */}
+              {_meta?.deployment && (
+                <Badge 
+                  variant="outline" 
+                  className={`text-xs ${_meta.deployment.ready 
+                    ? 'bg-green-500/10 text-green-600 border-green-500/20' 
+                    : 'bg-red-500/10 text-red-600 border-red-500/20'}`}
+                >
+                  {_meta.deployment.ready ? 'Running' : 'Not Ready'}
+                </Badge>
+              )}
+              {/* External badge for discovered resources */}
+              {_meta?.isDiscovered && (
+                <Badge variant="outline" className="bg-teal-500/10 text-teal-600 border-teal-500/20 text-xs">
+                  External
+                </Badge>
+              )}
               {getStatusBadge()}
             </div>
           </div>

@@ -318,6 +318,8 @@ export interface ModelResponse {
     usedBy?: ModelUsageRefJSON[]
     ready?: boolean
     message?: string
+    deployment?: DeploymentInfo
+    isDiscovered?: boolean
   }
 }
 
