@@ -145,7 +145,7 @@ func updateLatestVersionForSkills(ctx context.Context, c client.Client, skillNam
 }
 
 // findLatestVersion finds the latest version from a list of catalog items
-// TODO: Remove Published filter when publish/unpublish is removed
+// All catalog entries are now considered (Published filter removed for unified inventory)
 func findLatestVersion(versions []CatalogVersionInfo) string {
 	var latest *CatalogVersionInfo
 	var latestTimestamp time.Time
@@ -153,10 +153,8 @@ func findLatestVersion(versions []CatalogVersionInfo) string {
 	for i := range versions {
 		v := &versions[i]
 
-		// TODO: Remove this filter when Published status is removed
-		if !v.Published {
-			continue
-		}
+		// All versions are now considered visible in the unified inventory
+		// No filtering by Published status
 
 		if latest == nil {
 			latest = v
