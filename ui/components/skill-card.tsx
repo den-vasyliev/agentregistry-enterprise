@@ -45,6 +45,29 @@ export function SkillCard({ skill, showExternalLinks = true, onClick }: SkillCar
 
   const owner = getOwner()
 
+  const isRedundantWebsite = () => {
+    if (!skillData.websiteUrl || !skillData.repository?.url) return false
+    const normalize = (input: string) => input.replace(/\/+$/, "")
+    const repoUrl = normalize(skillData.repository.url)
+    const websiteUrl = normalize(skillData.websiteUrl)
+
+    if (repoUrl === websiteUrl) return true
+
+    try {
+      const repo = new URL(repoUrl)
+      const website = new URL(websiteUrl)
+      if (website.host !== repo.host) return false
+      if (website.host === "github.com") {
+        return website.pathname.startsWith(repo.pathname)
+      }
+    } catch {
+      return false
+    }
+    return false
+  }
+
+  const showWebsiteLink = showExternalLinks && skillData.websiteUrl && !isRedundantWebsite()
+
   const handleClick = () => {
     if (onClick) {
       onClick()
@@ -133,7 +156,7 @@ export function SkillCard({ skill, showExternalLinks = true, onClick }: SkillCar
               <Github className="h-4 w-4" />
             </Button>
           )}
-          {showExternalLinks && skillData.websiteUrl && (
+          {showWebsiteLink && (
             <Button
               variant="ghost"
               size="icon"
