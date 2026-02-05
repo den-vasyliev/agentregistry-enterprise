@@ -12,7 +12,7 @@
   <p>
     <a href="https://golang.org/doc/install"><img src="https://img.shields.io/badge/Go-1.25%2B-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go 1.25+"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License: MIT"></a>
-    <a href="https://github.com/agentregistry-dev/agentregistry"><img src="https://img.shields.io/badge/coverage-24.7%25-yellow?style=flat-square" alt="Coverage"></a>
+    <a href="https://github.com/den-vasyliev/agentregistry-inventory"><img src="https://img.shields.io/badge/coverage-24.7%25-yellow?style=flat-square" alt="Coverage"></a>
     <a href="https://discord.gg/HTYNjF2y2t"><img src="https://img.shields.io/discord/1435836734666707190?style=flat-square&label=Discord&logo=discord&logoColor=white&color=5865F2" alt="Discord"></a>
   </p>
 
@@ -42,7 +42,7 @@ cd agentregistry && make dev
 **☸️ Have a cluster?**
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/agentregistry-dev/agentregistry/main/config/crd/
+kubectl apply -f https://raw.githubusercontent.com/den-vasyliev/agentregistry-inventory/main/config/crd/
 helm install agentregistry ./charts/agentregistry -n agentregistry --create-namespace
 ```
 
@@ -321,7 +321,7 @@ make image        # Build container image (KO)
 ## 💬 Join the Community
 
 - 💬 [Discord](https://discord.gg/HTYNjF2y2t) — Chat with the team
-- 🐛 [Issues](https://github.com/agentregistry-dev/agentregistry/issues) — Report bugs or request features
+- 🐛 [Issues](https://github.com/den-vasyliev/agentregistry-inventory/issues) — Report bugs or request features
 - 🤝 [PRs Welcome](CONTRIBUTING.md) — We love contributions!
 
 ---
