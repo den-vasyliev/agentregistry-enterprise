@@ -67,6 +67,8 @@ Discover → Inventory → Publish → Deploy → Monitor
 
 
 
+---
+
 ## 🌟 Why Agent Inventory?
 
 | Without Agent Inventory | With Agent Inventory |
