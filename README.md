@@ -51,7 +51,7 @@ helm install agentregistry ./charts/agentregistry -n agentregistry --create-name
 ## ✨ What You Get
 
 ```
-Discover → Inventory → Publish → Deploy → Monitor
+Discover → Inventory → Deploy → Monitor
      ↑_________________________________________↓
               (Auto-discovery loop)
 ```
@@ -60,9 +60,9 @@ Discover → Inventory → Publish → Deploy → Monitor
 |------------|---------------|
 | 🔍 **Auto-Discovery** | Scans your clusters for AI workloads — MCP servers, agents, skills, models — and catalogs them automatically. Zero manual work. |
 | 📦 **Unified Inventory** | Everything in one place across dev, staging, prod. Git as the single source of truth. |
-| ✍️ **Create & Publish** | Generate manifests via UI/API, submit for review, open PRs — or publish directly. |
+| ✍️ **Create & Publish** | Generate manifests via UI/API, submit for review, open PRs — or deploy directly. |
 | 🚀 **One-Click Deploy** | Deploy from catalog to any environment. Controller handles the lifecycle. |
-| 🔒 **GitOps Native** | `pending_review` → approve/reject workflows built-in. |
+| 🔒 **GitOps Native** | GitOps and Gitless Ops workflows built-in. |
 | 🌐 **Multi-Cluster** | Discover and deploy across clusters with workload identity. |
 
 
@@ -291,9 +291,7 @@ helm install agentregistry ./charts/agentregistry \
 
 ```bash
 make dev          # Full stack: controller + UI + sample data
-make dev-ui       # UI only (Next.js hot reload)
 make test         # Run test suite with coverage
-make test-dev-env # Integration tests with envtest
 make lint         # gofmt + go vet + eslint
 make build        # Build controller binary
 make image        # Build container image (KO)
@@ -310,6 +308,7 @@ make image        # Build container image (KO)
 
 | Project | Description | Link |
 |---------|-------------|------|
+| **KGATEWAY** | AI Gateway | [kgateway.dev](https://kgateway.dev/) |
 | **MCP** | Model Context Protocol specification | [modelcontextprotocol.io](https://modelcontextprotocol.io) |
 | **Kagent** | Kubernetes AI agent runtime | [github.com/kagent-dev/kagent](https://github.com/kagent-dev/kagent) |
 | **KMCP** | MCP server operator for Kubernetes | [github.com/kagent-dev/kmcp](https://github.com/kagent-dev/kmcp) |
