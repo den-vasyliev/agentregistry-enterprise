@@ -62,12 +62,8 @@ build-ui: ## Build UI static export
 	@cd ui && npm install && npm run build:export
 	@echo "✓ UI build complete: ui/out/"
 
-build-controller: build-ui ## Build controller binary with embedded UI
+build-controller: prepare-ui-embed ## Build controller binary with embedded UI
 	@echo "Building controller binary..."
-	@echo "Copying UI files for embedding..."
-	@rm -rf cmd/controller/ui
-	@mkdir -p cmd/controller/ui
-	@cp -r ui/out cmd/controller/ui/
 	@CGO_ENABLED=0 GOOS=$(LOCALOS) GOARCH=$(LOCALARCH) go build \
 		-ldflags "$(LDFLAGS)" \
 		-o bin/controller \
@@ -133,7 +129,7 @@ dev: envtest ## Start interactive dev environment with envtest and sample data
 	@DEVENV=1 KUBEBUILDER_ASSETS="$$($(LOCALBIN)/setup-envtest use --bin-dir $(LOCALBIN) -p path)" \
 		go test -run TestDevEnv -timeout 30m -v ./test/devenv/
 
-lint: ## Run linters (gofmt, go vet)
+lint: prepare-ui-embed ## Run linters (gofmt, go vet)
 	@echo "Running gofmt..."
 	@gofmt_output=$$(gofmt -l .); \
 	if [ -n "$$gofmt_output" ]; then \
@@ -146,6 +142,13 @@ lint: ## Run linters (gofmt, go vet)
 	@echo "Running go vet..."
 	@go vet ./...
 	@echo "✓ go vet passed"
+
+prepare-ui-embed: build-ui ## Prepare UI files for embedding (internal target)
+	@echo "Preparing UI files for embedding..."
+	@rm -rf cmd/controller/ui/out
+	@mkdir -p cmd/controller/ui/out
+	@cp -r ui/out/* cmd/controller/ui/out/ 2>/dev/null || touch cmd/controller/ui/out/.gitkeep
+	@echo "✓ UI files prepared for embedding"
 
 fmt: ## Format Go code
 	@echo "Formatting code..."
