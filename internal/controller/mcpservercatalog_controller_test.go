@@ -186,3 +186,204 @@ func TestDeploymentRefEqual(t *testing.T) {
 		})
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Additional reconciler tests
+// ---------------------------------------------------------------------------
+
+func TestMCPServerCatalogReconciler_Reconcile_NewServer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	helper := SetupTestEnv(t, 60*time.Second, false)
+	defer helper.Cleanup(t)
+
+	ctx := context.Background()
+	reconciler := &MCPServerCatalogReconciler{
+		Client: helper.Client,
+		Scheme: helper.Scheme,
+		Logger: zerolog.Nop(),
+	}
+
+	// Create a new server catalog
+	catalog := &agentregistryv1alpha1.MCPServerCatalog{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "new-server-1-0-0",
+			Namespace: "default",
+		},
+		Spec: agentregistryv1alpha1.MCPServerCatalogSpec{
+			Name:    "new-server",
+			Version: "1.0.0",
+			Title:   "New Server",
+		},
+	}
+
+	err := helper.Client.Create(ctx, catalog)
+	require.NoError(t, err)
+
+	// Reconcile
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      catalog.Name,
+			Namespace: "default",
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, time.Duration(0), result.RequeueAfter)
+
+	// Verify status was updated
+	var updated agentregistryv1alpha1.MCPServerCatalog
+	err = helper.Client.Get(ctx, types.NamespacedName{Name: catalog.Name, Namespace: "default"}, &updated)
+	require.NoError(t, err)
+	assert.Equal(t, catalog.Generation, updated.Status.ObservedGeneration)
+}
+
+func TestMCPServerCatalogReconciler_Reconcile_NotFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	helper := SetupTestEnv(t, 60*time.Second, false)
+	defer helper.Cleanup(t)
+
+	ctx := context.Background()
+	reconciler := &MCPServerCatalogReconciler{
+		Client: helper.Client,
+		Scheme: helper.Scheme,
+		Logger: zerolog.Nop(),
+	}
+
+	// Reconcile a non-existent resource
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      "non-existent-server",
+			Namespace: "default",
+		},
+	})
+
+	// Should not error (IgnoreNotFound)
+	require.NoError(t, err)
+	assert.Equal(t, time.Duration(0), result.RequeueAfter)
+}
+
+func TestMCPServerCatalogReconciler_UpdateObservedGeneration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	helper := SetupTestEnv(t, 60*time.Second, false)
+	defer helper.Cleanup(t)
+
+	ctx := context.Background()
+	reconciler := &MCPServerCatalogReconciler{
+		Client: helper.Client,
+		Scheme: helper.Scheme,
+		Logger: zerolog.Nop(),
+	}
+
+	// Create catalog
+	catalog := &agentregistryv1alpha1.MCPServerCatalog{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "gen-test-1-0-0",
+			Namespace: "default",
+		},
+		Spec: agentregistryv1alpha1.MCPServerCatalogSpec{
+			Name:    "gen-test",
+			Version: "1.0.0",
+		},
+	}
+	require.NoError(t, helper.Client.Create(ctx, catalog))
+
+	// First reconcile
+	_, err := reconciler.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: catalog.Name, Namespace: "default"},
+	})
+	require.NoError(t, err)
+
+	// Get updated catalog
+	var updated agentregistryv1alpha1.MCPServerCatalog
+	err = helper.Client.Get(ctx, types.NamespacedName{Name: catalog.Name, Namespace: "default"}, &updated)
+	require.NoError(t, err)
+	firstGeneration := updated.Status.ObservedGeneration
+	assert.Greater(t, firstGeneration, int64(0))
+
+	// Update spec to trigger generation bump
+	updated.Spec.Title = "Updated Title"
+	err = helper.Client.Update(ctx, &updated)
+	require.NoError(t, err)
+
+	// Get catalog to see new generation
+	err = helper.Client.Get(ctx, types.NamespacedName{Name: catalog.Name, Namespace: "default"}, &updated)
+	require.NoError(t, err)
+	assert.Greater(t, updated.Generation, firstGeneration)
+
+	// Reconcile again
+	_, err = reconciler.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: catalog.Name, Namespace: "default"},
+	})
+	require.NoError(t, err)
+
+	// Verify observedGeneration was updated
+	err = helper.Client.Get(ctx, types.NamespacedName{Name: catalog.Name, Namespace: "default"}, &updated)
+	require.NoError(t, err)
+	assert.Equal(t, updated.Generation, updated.Status.ObservedGeneration)
+}
+
+func TestMCPServerCatalogReconciler_UpdateLatestVersion_SingleVersion(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	helper := SetupTestEnv(t, 60*time.Second, true)
+	defer helper.Cleanup(t)
+
+	ctx := context.Background()
+	reconciler := &MCPServerCatalogReconciler{
+		Client: helper.Manager.GetClient(),
+		Scheme: helper.Scheme,
+		Logger: zerolog.Nop(),
+	}
+
+	// Create single version
+	catalog := &agentregistryv1alpha1.MCPServerCatalog{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "single-server-1-0-0",
+			Namespace: "default",
+		},
+		Spec: agentregistryv1alpha1.MCPServerCatalogSpec{
+			Name:    "single-server",
+			Version: "1.0.0",
+		},
+	}
+	require.NoError(t, helper.Client.Create(ctx, catalog))
+
+	// Mark as published
+	err := helper.Client.Get(ctx, types.NamespacedName{Name: catalog.Name, Namespace: "default"}, catalog)
+	require.NoError(t, err)
+	catalog.Status.Published = true
+	now := metav1.Now()
+	catalog.Status.PublishedAt = &now
+	require.NoError(t, helper.Client.Status().Update(ctx, catalog))
+
+	// Wait for cache sync
+	require.Eventually(t, func() bool {
+		var c agentregistryv1alpha1.MCPServerCatalog
+		if err := helper.Manager.GetClient().Get(ctx, types.NamespacedName{Name: catalog.Name, Namespace: "default"}, &c); err != nil {
+			return false
+		}
+		return c.Status.Published
+	}, 10*time.Second, 100*time.Millisecond)
+
+	// Reconcile
+	_, err = reconciler.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: catalog.Name, Namespace: "default"},
+	})
+	require.NoError(t, err)
+
+	// Single version should be marked as latest
+	var updated agentregistryv1alpha1.MCPServerCatalog
+	err = helper.Client.Get(ctx, types.NamespacedName{Name: catalog.Name, Namespace: "default"}, &updated)
+	require.NoError(t, err)
+	assert.True(t, updated.Status.IsLatest)
+}
