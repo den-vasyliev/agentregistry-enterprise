@@ -1,6 +1,6 @@
 <div align="center">
   <picture>
-    <img alt="Agent Registry Enterprise" src="./img/agentregistry-enterprise-logo.svg" height="160"/>
+    <img alt="Agent Registry Enterprise" src="./img/arlogo.png" height="90"/>
   </picture>
 
   <h3>The Control Plane for AI Infrastructure</h3>
