@@ -12,7 +12,7 @@
   <p>
     <a href="https://golang.org/doc/install"><img src="https://img.shields.io/badge/Go-1.25%2B-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go 1.25+"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License: MIT"></a>
-    <a href="https://github.com/den-vasyliev/agentregistry-inventory"><img src="https://img.shields.io/badge/coverage-24.7%25-yellow?style=flat-square" alt="Coverage"></a>
+    <a href="https://github.com/den-vasyliev/agentregistry-inventory"><img src="https://img.shields.io/badge/coverage-40.2%25-yellow?style=flat-square" alt="Coverage"></a>
     <a href="https://discord.gg/HTYNjF2y2t"><img src="https://img.shields.io/discord/1435836734666707190?style=flat-square&label=Discord&logo=discord&logoColor=white&color=5865F2" alt="Discord"></a>
   </p>
 
