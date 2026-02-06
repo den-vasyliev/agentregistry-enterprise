@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import Image from "next/image"
 import { ServerResponse, adminApiClient } from "@/lib/admin-api"
 import { formatDateTime as formatDate, getStatusColor } from "@/lib/utils"
@@ -51,6 +52,11 @@ import {
   BadgeCheck,
   Bot,
 } from "lucide-react"
+
+const ServerUsageGraph = dynamic(
+  () => import("@/components/server-usage-graph").then((m) => m.ServerUsageGraph),
+  { ssr: false },
+)
 
 interface ServerDetailProps {
   server: ServerResponse & { allVersions?: ServerResponse[] }
@@ -690,6 +696,9 @@ export function ServerDetail({ server, onClose, onServerCopied }: ServerDetailPr
           </TabsContent>
 
           <TabsContent value="usage" className="space-y-4">
+            {((_meta?.usedBy && _meta.usedBy.length > 0) || (serverData.packages && serverData.packages.length > 0) || (serverData.remotes && serverData.remotes.length > 0)) && (
+              <ServerUsageGraph server={serverData} usedBy={_meta?.usedBy || []} />
+            )}
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Bot className="h-5 w-5" />
