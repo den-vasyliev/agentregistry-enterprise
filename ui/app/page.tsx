@@ -40,6 +40,7 @@ import {
   ShieldCheck,
   BadgeCheck,
   Filter,
+  X,
 } from "lucide-react"
 import {
   Select,
@@ -653,8 +654,17 @@ export default function AdminPage() {
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-9"
+                  className="pl-10 pr-8 h-9"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
 
