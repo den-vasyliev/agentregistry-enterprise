@@ -1,0 +1,95 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-go@v6
+      with:
+        go-version-file: "go.mod"
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.9.x
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Cache npm dependencies
+      uses: actions/cache@v3
+      with:
+        path: ui/node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('ui/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Download Go dependencies
+      run: go mod download
+
+    - name: Build UI
+      run: make build-ui
+
+    - name: Download Go dependencies
+      run: go mod download
+
+    - name: Run Integration Tests
+      run: |
+        echo "Starting integration test services..."
+        make docker-registry docker-compose-up
+        make test
+
+    - name: Build Go CLI
+      run: |
+        go build -v -o bin/arctl cmd/cli/main.go
+        go build -v -o bin/arctl-server cmd/server/main.go
+
+    # TODO: reenable this later when version is fast
+    # - name: Verify binary
+    #   run: |
+    #     ./bin/arctl version
+    #     ./bin/arctl-server version
+
+    # - name: Upload artifact
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: arctl
+    #     path: bin/arctl
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-go@v6
+      with:
+        go-version-file: "go.mod"
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.9.x
+
+    - name: Build UI
+      run: make build-ui
+
+    - name: golangci-lint
+      run: make lint
+
+    - name: Lint UI
+      run: cd ui && npm run lint
+
