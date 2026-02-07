@@ -838,16 +838,6 @@ export default function AdminPage() {
               </Button>
 
               <Button
-                id="refresh-button"
-                variant="ghost"
-                size="icon"
-                onClick={fetchData}
-                title="Refresh"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-
-              <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setDiscoveryMapOpen(true)}
@@ -863,6 +853,16 @@ export default function AdminPage() {
                 title="Take a tour"
               >
                 <HelpCircle className="h-4 w-4" />
+              </Button>
+
+              <Button
+                id="refresh-button"
+                variant="ghost"
+                size="icon"
+                onClick={fetchData}
+                title="Refresh"
+              >
+                <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
           </div>
