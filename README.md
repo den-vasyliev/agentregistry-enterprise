@@ -30,6 +30,12 @@ If it's running, it's in the catalog.</h3>
 
 > **No CLI needed.** Agent Registry ships an [MCP server](#-mcp-server) — connect it to Claude Code, Cursor, or any MCP-compatible client and manage your registry conversationally.
 
+  <p><a href="CONCEPT.md">📝 Read the story behind Agent Inventory</a></p>
+
+  <a href="https://youtu.be/sCut0CEHRr0">
+    <img src="https://img.youtube.com/vi/sCut0CEHRr0/maxresdefault.jpg" alt="Agent Inventory Demo" width="480"/>
+  </a>
+
 </div>
 
 <a id="features"></a>
