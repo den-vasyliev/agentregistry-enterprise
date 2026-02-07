@@ -6,6 +6,7 @@ import { Zap, Bot, Brain } from "lucide-react"
 import { ServerStats } from "@/lib/admin-api"
 
 interface StatsCardsProps {
+  id?: string
   stats: ServerStats
   skillCount: number
   agentCount: number
@@ -14,9 +15,9 @@ interface StatsCardsProps {
   onTabChange: (tab: string) => void
 }
 
-export function StatsCards({ stats, skillCount, agentCount, modelCount, activeTab, onTabChange }: StatsCardsProps) {
+export function StatsCards({ id, stats, skillCount, agentCount, modelCount, activeTab, onTabChange }: StatsCardsProps) {
   return (
-    <div className="bg-muted/30 border-b">
+    <div id={id} className="bg-muted/30 border-b">
       <div className="container mx-auto px-6 py-6">
         <div className="grid gap-4 md:grid-cols-4">
           <Card

@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import Image from "next/image"
-import { ServerResponse, adminApiClient } from "@/lib/admin-api"
-import { formatDateTime as formatDate, getStatusColor } from "@/lib/utils"
+import { ServerResponse } from "@/lib/admin-api"
+import { formatDateTime as formatDate } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -51,6 +51,7 @@ import {
   ShieldCheck,
   BadgeCheck,
   Bot,
+  Wrench,
 } from "lucide-react"
 
 const ServerUsageGraph = dynamic(
@@ -69,11 +70,16 @@ export function ServerDetail({ server, onClose, onServerCopied }: ServerDetailPr
 
   const [selectedVersion, setSelectedVersion] = useState<ServerResponse>(server)
   const [jsonCopied, setJsonCopied] = useState(false)
-  
+
   // Get all versions, defaulting to just the current server if not available
   const allVersions = server.allVersions || [server]
-  
+
   const { server: serverData, _meta } = selectedVersion
+
+  // Derive tools directly from _meta.usedBy (populated by controller)
+  const serverTools = (_meta?.usedBy || [])
+    .filter((ref) => ref.toolNames && ref.toolNames.length > 0)
+    .map((ref) => ({ agentName: ref.name, toolNames: ref.toolNames! }))
   const official = _meta?.['io.modelcontextprotocol.registry/official']
 
   // Extract metadata - check both locations for backward compatibility
@@ -86,7 +92,7 @@ export function ServerDetail({ server, onClose, onServerCopied }: ServerDetailPr
   const endpointHealth = publisherMetadata?.endpoint_health
   const scanData = publisherMetadata?.scans
   const identityData = publisherMetadata?.identity
-  const semverData = publisherMetadata?.semver
+
   const securityScanning = publisherMetadata?.security_scanning
 
   // Get the first icon if available
@@ -364,6 +370,54 @@ export function ServerDetail({ server, onClose, onServerCopied }: ServerDetailPr
                 </div>
               )}
             </Card>
+
+            {/* Tools Section */}
+            {serverTools.length > 0 && (() => {
+              const allToolNames = [...new Set(serverTools.flatMap((e) => e.toolNames))]
+              return (
+                <Card className="p-6">
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Wrench className="h-5 w-5" />
+                    Tools
+                    {allToolNames.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">{allToolNames.length}</Badge>
+                    )}
+                  </h2>
+                  {/* All tools summary */}
+                  {allToolNames.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b">
+                      {allToolNames.map((tool) => (
+                        <Badge key={tool} variant="secondary" className="font-mono text-xs">
+                          {tool}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  {/* Per-agent breakdown */}
+                  <div className="space-y-3">
+                    {serverTools.map((entry, idx) => (
+                      <div key={idx} className="flex items-start gap-3 p-3 bg-muted rounded-md">
+                        <Bot className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">{entry.agentName}</div>
+                          {entry.toolNames.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {entry.toolNames.map((tool) => (
+                                <Badge key={tool} variant="outline" className="font-mono text-[10px]">
+                                  {tool}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground mt-1">All tools</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )
+            })()}
 
             {/* Score Section */}
             {hasScoreData && (
@@ -707,16 +761,25 @@ export function ServerDetail({ server, onClose, onServerCopied }: ServerDetailPr
               {_meta?.usedBy && _meta.usedBy.length > 0 ? (
                 <div className="space-y-3">
                   {_meta.usedBy.map((ref, idx) => (
-                    <div key={idx} className="flex items-center gap-3 p-3 bg-muted rounded-md">
-                      <Tag className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <div className="text-sm font-medium">{ref.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {ref.kind && `${ref.kind} in `}{ref.namespace}
+                      <div key={idx} className="flex items-start gap-3 p-3 bg-muted rounded-md">
+                        <Bot className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">{ref.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {ref.kind || "Agent"} in {ref.namespace}
+                          </div>
+                          {ref.toolNames && ref.toolNames.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {ref.toolNames.map((tool) => (
+                                <Badge key={tool} variant="outline" className="font-mono text-[10px]">
+                                  {tool}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">

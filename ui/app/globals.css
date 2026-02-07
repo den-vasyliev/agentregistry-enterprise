@@ -79,6 +79,53 @@
   @apply !text-muted-foreground/30;
 }
 
+/* Driver.js tour styling for dark mode */
+.dark .driver-popover {
+  background-color: hsl(270 10% 12%);
+  color: hsl(270 5% 95%);
+  border: 1px solid hsl(270 10% 25%);
+}
+
+.dark .driver-popover .driver-popover-title {
+  color: hsl(270 5% 95%);
+}
+
+.dark .driver-popover .driver-popover-description {
+  color: hsl(270 5% 75%);
+}
+
+.dark .driver-popover .driver-popover-progress-text {
+  color: hsl(270 5% 55%);
+}
+
+.dark .driver-popover .driver-popover-prev-btn {
+  color: hsl(270 5% 75%);
+  border-color: hsl(270 10% 25%);
+}
+
+.dark .driver-popover .driver-popover-prev-btn:hover {
+  background-color: hsl(270 10% 18%);
+  color: hsl(270 5% 95%);
+}
+
+.dark .driver-popover .driver-popover-next-btn,
+.dark .driver-popover .driver-popover-close-btn {
+  background-color: hsl(270 70% 60%);
+  color: hsl(270 10% 10%);
+  border: none;
+}
+
+.dark .driver-popover .driver-popover-next-btn:hover {
+  background-color: hsl(270 70% 55%);
+}
+
+.dark .driver-popover .driver-popover-arrow-side-left .driver-popover-arrow,
+.dark .driver-popover .driver-popover-arrow-side-right .driver-popover-arrow,
+.dark .driver-popover .driver-popover-arrow-side-top .driver-popover-arrow,
+.dark .driver-popover .driver-popover-arrow-side-bottom .driver-popover-arrow {
+  border-color: hsl(270 10% 12%);
+}
+
 /* Scrollbar styling */
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar {

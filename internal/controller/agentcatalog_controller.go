@@ -72,7 +72,7 @@ func (r *AgentCatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// Update MCP server UsedBy references
-	referencedServers := extractReferencedMCPServerCatalogNames(&agent)
+	referencedServers := extractReferencedMCPServers(&agent)
 	if err := r.updateMCPServerUsedBy(ctx, &agent, referencedServers, logger); err != nil {
 		logger.Error().Err(err).Msg("failed to update MCP server UsedBy")
 		return ctrl.Result{}, err
@@ -98,13 +98,30 @@ func (r *AgentCatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return ctrl.Result{}, nil
 }
 
-// extractReferencedMCPServerCatalogNames returns the set of registry server names
-// referenced by an AgentCatalog's McpServers with Type=="registry".
-func extractReferencedMCPServerCatalogNames(agent *agentregistryv1alpha1.AgentCatalog) map[string]struct{} {
-	refs := make(map[string]struct{})
+// mcpServerRef holds the server name and the specific tool names used by the agent.
+type mcpServerRef struct {
+	ToolNames []string
+}
+
+// extractReferencedMCPServers returns MCP server names referenced by an AgentCatalog
+// along with the tool names used from each server.
+func extractReferencedMCPServers(agent *agentregistryv1alpha1.AgentCatalog) map[string]*mcpServerRef {
+	refs := make(map[string]*mcpServerRef)
 	for _, mcp := range agent.Spec.McpServers {
 		if mcp.Type == "registry" && mcp.RegistryServerName != "" {
-			refs[mcp.RegistryServerName] = struct{}{}
+			if _, ok := refs[mcp.RegistryServerName]; !ok {
+				refs[mcp.RegistryServerName] = &mcpServerRef{}
+			}
+		}
+	}
+	for _, tool := range agent.Spec.Tools {
+		if tool.Type == "McpServer" && tool.Name != "" {
+			ref, ok := refs[tool.Name]
+			if !ok {
+				ref = &mcpServerRef{}
+				refs[tool.Name] = ref
+			}
+			ref.ToolNames = append(ref.ToolNames, tool.ToolNames...)
 		}
 	}
 	return refs
@@ -114,16 +131,17 @@ func extractReferencedMCPServerCatalogNames(agent *agentregistryv1alpha1.AgentCa
 func (r *AgentCatalogReconciler) updateMCPServerUsedBy(
 	ctx context.Context,
 	agent *agentregistryv1alpha1.AgentCatalog,
-	referencedServers map[string]struct{},
+	referencedServers map[string]*mcpServerRef,
 	logger zerolog.Logger,
 ) error {
-	ref := agentregistryv1alpha1.MCPServerUsageRef{
-		Namespace: agent.Namespace,
-		Name:      agent.Name,
-		Kind:      "AgentCatalog",
-	}
+	for serverName, serverRef := range referencedServers {
+		ref := agentregistryv1alpha1.MCPServerUsageRef{
+			Namespace: agent.Namespace,
+			Name:      agent.Spec.Name,
+			Kind:      "AgentCatalog",
+			ToolNames: serverRef.ToolNames,
+		}
 
-	for serverName := range referencedServers {
 		var serverList agentregistryv1alpha1.MCPServerCatalogList
 		if err := r.List(ctx, &serverList, client.MatchingFields{
 			IndexMCPServerName: serverName,
@@ -133,9 +151,11 @@ func (r *AgentCatalogReconciler) updateMCPServerUsedBy(
 
 		for i := range serverList.Items {
 			server := &serverList.Items[i]
-			if containsUsageRef(server.Status.UsedBy, ref) {
+			if usageRefEqual(server.Status.UsedBy, ref) {
 				continue
 			}
+			// Remove old entry for this agent (if tools changed) and add updated one
+			server.Status.UsedBy = removeUsageRef(server.Status.UsedBy, ref)
 			server.Status.UsedBy = append(server.Status.UsedBy, ref)
 			if err := r.Status().Update(ctx, server); err != nil {
 				if apierrors.IsConflict(err) {
@@ -154,12 +174,12 @@ func (r *AgentCatalogReconciler) updateMCPServerUsedBy(
 func (r *AgentCatalogReconciler) cleanupStaleUsedByRefs(
 	ctx context.Context,
 	agent *agentregistryv1alpha1.AgentCatalog,
-	currentRefs map[string]struct{},
+	currentRefs map[string]*mcpServerRef,
 	logger zerolog.Logger,
 ) error {
 	ref := agentregistryv1alpha1.MCPServerUsageRef{
 		Namespace: agent.Namespace,
-		Name:      agent.Name,
+		Name:      agent.Spec.Name,
 		Kind:      "AgentCatalog",
 	}
 
@@ -198,7 +218,7 @@ func (r *AgentCatalogReconciler) handleAgentDeletion(
 	logger zerolog.Logger,
 ) error {
 	// Clean up all UsedBy refs (pass empty set so everything is stale)
-	if err := r.cleanupStaleUsedByRefs(ctx, agent, map[string]struct{}{}, logger); err != nil {
+	if err := r.cleanupStaleUsedByRefs(ctx, agent, map[string]*mcpServerRef{}, logger); err != nil {
 		return err
 	}
 
@@ -220,6 +240,28 @@ func (r *AgentCatalogReconciler) handleAgentDeletion(
 func containsUsageRef(refs []agentregistryv1alpha1.MCPServerUsageRef, ref agentregistryv1alpha1.MCPServerUsageRef) bool {
 	for _, r := range refs {
 		if r.Namespace == ref.Namespace && r.Name == ref.Name {
+			return true
+		}
+	}
+	return false
+}
+
+// usageRefEqual checks if a ref with the same namespace, name, and toolNames already exists.
+func usageRefEqual(refs []agentregistryv1alpha1.MCPServerUsageRef, ref agentregistryv1alpha1.MCPServerUsageRef) bool {
+	for _, r := range refs {
+		if r.Namespace == ref.Namespace && r.Name == ref.Name {
+			if len(r.ToolNames) != len(ref.ToolNames) {
+				return false
+			}
+			toolSet := make(map[string]struct{}, len(r.ToolNames))
+			for _, t := range r.ToolNames {
+				toolSet[t] = struct{}{}
+			}
+			for _, t := range ref.ToolNames {
+				if _, ok := toolSet[t]; !ok {
+					return false
+				}
+			}
 			return true
 		}
 	}

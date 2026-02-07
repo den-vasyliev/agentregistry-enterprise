@@ -410,6 +410,12 @@ spec:
                     namespace:
                       description: Namespace of the agent
                       type: string
+                    toolNames:
+                      description: ToolNames lists the specific tools used by the
+                        agent from this MCP server
+                      items:
+                        type: string
+                      type: array
                   required:
                   - name
                   - namespace

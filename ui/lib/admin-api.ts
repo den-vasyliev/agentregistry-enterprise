@@ -149,7 +149,7 @@ export interface ServerResponse {
     deployment?: DeploymentInfo
     source?: string // discovery, manual, deployment
     isDiscovered?: boolean
-    usedBy?: Array<{ namespace: string; name: string; kind?: string }>
+    usedBy?: Array<{ namespace: string; name: string; kind?: string; toolNames?: string[] }>
   }
 }
 
@@ -198,6 +198,44 @@ export interface VersionInfo {
   version: string
   commit: string
   buildDate: string
+}
+
+// Discovery map types
+export interface DiscoveryMapCluster {
+  name: string
+  provider?: string
+  zone?: string
+  region?: string
+}
+
+export interface DiscoveryMapResourceCounts {
+  mcpServers: number
+  agents: number
+  skills: number
+  models: number
+}
+
+export interface DiscoveryMapEnvironment {
+  name: string
+  cluster: DiscoveryMapCluster
+  namespaces?: string[]
+  resourceTypes?: string[]
+  discoveryEnabled: boolean
+  connected: boolean
+  discoveredResources: DiscoveryMapResourceCounts
+  lastSyncTime?: string
+  error?: string
+  labels?: Record<string, string>
+}
+
+export interface DiscoveryMapConfig {
+  name: string
+  environments: DiscoveryMapEnvironment[]
+  lastSyncTime?: string
+}
+
+export interface DiscoveryMapResponse {
+  configs: DiscoveryMapConfig[]
 }
 
 // Skill types
@@ -999,6 +1037,18 @@ class AdminApiClient {
     const data = await response.json()
     // Huma might return data directly or wrapped in Body
     return data.environments || data.Body?.environments || []
+  }
+
+  // Get discovery map for topology visualization
+  async getDiscoveryMap(): Promise<DiscoveryMapResponse> {
+    const response = await fetch(`${this.baseUrl}/v0/discovery/map`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch discovery map')
+    }
+    const data = await response.json()
+    // Huma may wrap response in Body
+    const body = data.Body || data
+    return { configs: body.configs || [] }
   }
 
   // Remove a deployment

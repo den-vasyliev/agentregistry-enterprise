@@ -99,9 +99,10 @@ type ArgumentJSON struct {
 }
 
 type ServerUsageRefJSON struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-	Kind      string `json:"kind,omitempty"`
+	Namespace string   `json:"namespace"`
+	Name      string   `json:"name"`
+	Kind      string   `json:"kind,omitempty"`
+	ToolNames []string `json:"toolNames,omitempty"`
 }
 
 type ServerMeta struct {
@@ -672,6 +673,7 @@ func (h *ServerHandler) convertToServerResponse(s *agentregistryv1alpha1.MCPServ
 			Namespace: ref.Namespace,
 			Name:      ref.Name,
 			Kind:      ref.Kind,
+			ToolNames: ref.ToolNames,
 		})
 	}
 

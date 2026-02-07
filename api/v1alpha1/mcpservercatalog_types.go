@@ -57,6 +57,9 @@ type MCPServerUsageRef struct {
 	Name string `json:"name"`
 	// Kind of the resource (e.g., Agent)
 	Kind string `json:"kind,omitempty"`
+	// ToolNames lists the specific tools used by the agent from this MCP server
+	// +optional
+	ToolNames []string `json:"toolNames,omitempty"`
 }
 
 // MCPServerCatalogStatus defines the observed state of MCPServerCatalog

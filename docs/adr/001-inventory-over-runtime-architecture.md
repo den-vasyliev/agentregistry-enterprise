@@ -1,9 +1,5 @@
 # ADR-001: Inventory-Over-Runtime Architecture for Agentic Infrastructure
 
-- **Status**: Accepted
-- **Date**: 2025-02-06
-- **Authors**: Agent Registry team
-
 ## Context
 
 Enterprise teams building with AI face a fragmented landscape: agents scattered across clusters, MCP servers deployed by different teams, models running in different environments. There is no central view of what exists, what's available for reuse, or how resources relate to each other.

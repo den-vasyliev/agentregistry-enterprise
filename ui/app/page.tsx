@@ -26,6 +26,8 @@ import { ModelDetail } from "@/components/model-detail"
 import { SubmitResourceDialog } from "@/components/submit-resource-dialog"
 import { DeployDialog, UndeployDialog } from "@/components/deploy-dialog"
 import { StatsCards } from "@/components/stats-cards"
+import { ProductTour, useProductTour } from "@/components/product-tour"
+import { DiscoveryMapView } from "@/components/discovery-map-view"
 import { Pagination } from "@/components/pagination"
 import { adminApiClient, ServerResponse, SkillResponse, AgentResponse, ModelResponse, ServerStats } from "@/lib/admin-api"
 import MCPIcon from "@/components/icons/mcp"
@@ -41,6 +43,8 @@ import {
   BadgeCheck,
   Filter,
   X,
+  HelpCircle,
+  Map,
 } from "lucide-react"
 import {
   Select,
@@ -85,6 +89,8 @@ export default function AdminPage() {
   const [filterPackageType, setFilterPackageType] = useState<string>("all")
   const [filterProvider, setFilterProvider] = useState<string>("all")
   const [submitResourceDialogOpen, setSubmitResourceDialogOpen] = useState(false)
+  const [discoveryMapOpen, setDiscoveryMapOpen] = useState(false)
+  const { startTour } = useProductTour()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedServer, setSelectedServer] = useState<ServerResponse | null>(null)
@@ -213,17 +219,17 @@ export default function AdminPage() {
 
   // Group servers by name, keeping the latest version as the representative
   const groupServersByName = (servers: ServerResponse[]): GroupedServer[] => {
-    const grouped = new Map<string, ServerResponse[]>()
+    const grouped: Record<string, ServerResponse[]> = {}
 
     servers.forEach((server) => {
       const name = server.server.name
-      if (!grouped.has(name)) {
-        grouped.set(name, [])
+      if (!grouped[name]) {
+        grouped[name] = []
       }
-      grouped.get(name)!.push(server)
+      grouped[name].push(server)
     })
 
-    return Array.from(grouped.entries()).map(([name, versions]) => {
+    return Object.entries(grouped).map(([name, versions]) => {
       const sortedVersions = [...versions].sort((a, b) => {
         const dateA = getResourceDate(a)
         const dateB = getResourceDate(b)
@@ -577,6 +583,7 @@ export default function AdminPage() {
 
   return (
     <>
+      <ProductTour autoStart={false} />
       <DeployDialog
         open={deployDialogOpen}
         onOpenChange={setDeployDialogOpen}
@@ -630,10 +637,21 @@ export default function AdminPage() {
         />
       )}
 
-      {!selectedServer && !selectedSkill && !selectedAgent && !selectedModel && (
+      {discoveryMapOpen && (
+        <DiscoveryMapView
+          onClose={() => setDiscoveryMapOpen(false)}
+          serverCount={groupedServers.length}
+          agentCount={agents.length}
+          skillCount={skills.length}
+          modelCount={models.length}
+        />
+      )}
+
+      {!discoveryMapOpen && !selectedServer && !selectedSkill && !selectedAgent && !selectedModel && (
     <main className="min-h-screen bg-background">
       {stats && (
         <StatsCards
+          id="stats-cards"
           stats={stats}
           skillCount={skills.length}
           agentCount={agents.length}
@@ -647,7 +665,7 @@ export default function AdminPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center gap-4 mb-8">
             {/* Search */}
-            <div className="flex-1 max-w-md">
+            <div id="search-input" className="flex-1 max-w-md">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -670,6 +688,7 @@ export default function AdminPage() {
 
             {/* Deployment Status Filter - only for Servers and Agents */}
             {(activeTab === 'servers' || activeTab === 'agents') && (
+              <div id="deployment-status-filter">
               <Tabs value={deploymentStatusFilter} onValueChange={(v) => setDeploymentStatusFilter(v as DeploymentStatus)}>
                 <TabsList>
                   <TabsTrigger value="all">All</TabsTrigger>
@@ -679,12 +698,13 @@ export default function AdminPage() {
                   <TabsTrigger value="failed">Failed</TabsTrigger>
                 </TabsList>
               </Tabs>
+              </div>
             )}
 
             {/* Verified Filters */}
             {(activeTab === 'servers' || activeTab === 'agents' || activeTab === 'skills') && (
               <TooltipProvider>
-                <div className="flex items-center gap-3">
+                <div id="verified-filters" className="flex items-center gap-3">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center space-x-2">
@@ -808,6 +828,7 @@ export default function AdminPage() {
             {/* Action Buttons */}
             <div className="flex items-center gap-3 ml-auto">
               <Button
+                id="submit-button"
                 variant="default"
                 className="gap-2"
                 onClick={() => setSubmitResourceDialogOpen(true)}
@@ -817,6 +838,7 @@ export default function AdminPage() {
               </Button>
 
               <Button
+                id="refresh-button"
                 variant="ghost"
                 size="icon"
                 onClick={fetchData}
@@ -824,11 +846,29 @@ export default function AdminPage() {
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setDiscoveryMapOpen(true)}
+                title="Discovery map"
+              >
+                <Map className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={startTour}
+                title="Take a tour"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
           {/* MCP Tab */}
-          <TabsContent value="servers">
+          <TabsContent id="tab-content" value="servers">
             <div>
               <h2 className="text-lg font-semibold mb-4">
                 MCP
@@ -871,14 +911,15 @@ export default function AdminPage() {
                     {filteredServers
                       .slice((currentPageServers - 1) * itemsPerPage, currentPageServers * itemsPerPage)
                       .map((server, index) => (
-                        <ServerCard
-                          key={`${server.server.name}-${server.server.version}-${index}`}
-                          server={server}
-                          versionCount={server.versionCount}
-                          onClick={() => handleServerClick(server)}
-                          onDeploy={(s) => handleDeploy(s, 'server')}
-                          onUndeploy={(s) => handleUndeploy(s, 'server')}
-                        />
+                        <div key={`${server.server.name}-${server.server.version}-${index}`} id={index === 0 ? "resource-card" : undefined}>
+                          <ServerCard
+                            server={server}
+                            versionCount={server.versionCount}
+                            onClick={() => handleServerClick(server)}
+                            onDeploy={(s) => handleDeploy(s, 'server')}
+                            onUndeploy={(s) => handleUndeploy(s, 'server')}
+                          />
+                        </div>
                       ))}
                   </div>
                   <Pagination

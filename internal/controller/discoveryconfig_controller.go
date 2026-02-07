@@ -894,7 +894,8 @@ func (r *DiscoveryConfigReconciler) handleAgentAdd(
 				Type: string(tool.Type),
 			}
 			if tool.McpServer != nil {
-				ref.Name = tool.McpServer.Name
+				// Use namespace-prefixed name to match MCPServerCatalog.Spec.Name format
+				ref.Name = fmt.Sprintf("%s/%s", agent.Namespace, tool.McpServer.Name)
 				ref.ToolNames = tool.McpServer.ToolNames
 			} else if tool.Agent != nil {
 				ref.Name = tool.Agent.Name

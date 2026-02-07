@@ -1,9 +1,9 @@
 <div align="center">
   <picture>
-    <img alt="Agent Inventory" src="./img/arlogo.png" height="90"/>
+    <img alt="Agent Inventory" src="docs/img/arlogo.png" height="90"/>
   </picture>
 
-  <h3>The Control Plane for AI Infrastructure</h3>
+  <h2>The Control Plane for AI Infrastructure</h2>
   
   <p>
     <strong>Kubernetes-native registry for MCP servers, agents, skills & models</strong>
@@ -17,18 +17,37 @@
   </p>
 
   <p>
-    <a href="#-quick-start">🚀 Quick Start</a> •
-    <a href="#-features">✨ Features</a> •
-    <a href="#-architecture">🏗️ Architecture</a> •
-    <a href="#-documentation">📚 Docs</a>
+    <a href="#quick-start">🚀 Quick Start</a> •
+    <a href="#features">✨ Features</a> •
+    <a href="#architecture">🏗️ Architecture</a> •
+    <a href="#docs">📚 Docs</a>
   </p>
+<p><h3>Automatically indexes MCP servers, agents, skills, and models across clusters. 
+
+If it's running, it's in the catalog.</h3>
+</p>
 </div>
 
----
+<a id="features"></a>
+
+## ✨ What You Get
+<center><img src="docs/img/inventory.png"></center>
+
+| Capability | What It Means |
+|------------|---------------|
+| 🔍 **Auto-Discovery** | Scans your clusters for AI workloads — MCP servers, agents, skills, models — and catalogs them automatically. Zero manual work. |
+| 📦 **Unified Inventory** | Everything in one place across dev, staging, prod. Git as the single source of truth. |
+| ✍️ **Create & Publish** | Generate manifests via UI/API, submit for review, open PRs — or deploy directly. |
+| 🚀 **One-Click Deploy** | Deploy from catalog to any environment. Controller handles the lifecycle. |
+| 🔒 **GitOps Native** | GitOps and Gitless Ops workflows built-in. |
+| 🌐 **Multi-Cluster** | Discover and deploy across clusters with workload identity. |
+
+
+<a id="quick-start"></a>
 
 ## 🚀 Quick Start
 
-### One command to rule them all
+### One command to run dev environmetn
 
 ```bash
 git clone https://github.com/den-vasyliev/agentregistry-inventory.git
@@ -48,23 +67,6 @@ helm install agentregistry-inventory ./charts/agentregistry -n agentregistry --c
 
 ---
 
-## ✨ What You Get
-
-```
-Discover → Inventory → Deploy → Monitor
-↑__________________________________↓
-      (Auto-discovery loop)
-```
-
-| Capability | What It Means |
-|------------|---------------|
-| 🔍 **Auto-Discovery** | Scans your clusters for AI workloads — MCP servers, agents, skills, models — and catalogs them automatically. Zero manual work. |
-| 📦 **Unified Inventory** | Everything in one place across dev, staging, prod. Git as the single source of truth. |
-| ✍️ **Create & Publish** | Generate manifests via UI/API, submit for review, open PRs — or deploy directly. |
-| 🚀 **One-Click Deploy** | Deploy from catalog to any environment. Controller handles the lifecycle. |
-| 🔒 **GitOps Native** | GitOps and Gitless Ops workflows built-in. |
-| 🌐 **Multi-Cluster** | Discover and deploy across clusters with workload identity. |
-
 
 
 ---
@@ -79,6 +81,8 @@ Discover → Inventory → Deploy → Monitor
 | 🤷 "What agents are running in prod?" | 📊 Real-time inventory & status |
 | 😱 Direct K8s yaml edits | 🚀 One-click deploy from UI/API |
 
+<a id="architecture"></a>
+
 ## 🏗️ Architecture
 
 ```
@@ -90,10 +94,10 @@ Discover → Inventory → Deploy → Monitor
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    CONTROLLER (Go Controller Runtime)       │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐    │
-│  │  HTTP API   │ │ 9 Reconcilers│ │  Auto-Discovery    │    │
-│  │   :8080     │ │              │ │                    │    │
-│  └─────────────┘ └─────────────┘ └─────────────────────┘    │
+│  ┌─────────────┐ ┌────────────────┐ ┌─────────────────────┐ │
+│  │  HTTP API   │ │ 9 Reconcilers  │ │  Auto-Discovery     │ │
+│  │   :8080     │ │                │ │                     │ │
+│  └─────────────┘ └────────────────┘ └─────────────────────┘ │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐    │
 │  │  Metrics    │ │   Health    │ │   Leader Election   │    │
 │  │   :8081     │ │   :8082     │ │                     │    │
@@ -106,9 +110,9 @@ Discover → Inventory → Deploy → Monitor
 │  ┌─────────────────┐ ┌─────────────────┐ ┌──────────────┐   │
 │  │ MCPServerCatalog│ │  AgentCatalog   │ │ SkillCatalog │   │
 │  └─────────────────┘ └─────────────────┘ └──────────────┘   │
-│  ┌─────────────────┐ ┌─────────────────┐                    │
-│  │RegistryDeployment│ │ DiscoveryConfig │                   │
-│  └─────────────────┘ └─────────────────┘                    │
+│  ┌────────────────────┐ ┌─────────────────┐                 │
+│  │RegistryDeployment  | │ DiscoveryConfig │                 │
+│  └────────────────────┘ └─────────────────┘                 │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -117,6 +121,8 @@ Discover → Inventory → Deploy → Monitor
 │         Agent ↔ MCP Server ↔ Model ↔ Skills                 │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+<a id="docs"></a>
 
 ## 📚 CRD Reference
 - [Kgateway](https://kgateway.dev) — Gateway API for AI traffic
@@ -328,7 +334,7 @@ make image        # Build container image (KO)
 
 <div align="center">
 
-**[⬆ Back to Top](#-the-control-plane-for-ai-infrastructure)**
+**[⬆ Back to Top](#the-control-plane-for-ai-infrastructure)**
 
 Made with ❤️ by the Agent Inventory team
 

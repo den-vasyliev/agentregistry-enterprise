@@ -4,7 +4,6 @@ import { useMemo } from "react"
 import {
   ReactFlow,
   Background,
-  Controls,
   Handle,
   Position,
   type Node,
@@ -257,8 +256,7 @@ export function AgentDependencyGraph({ agent }: { agent: AgentJSON }) {
         nodesConnectable={false}
         proOptions={{ hideAttribution: false }}
       >
-        <Background gap={16} size={1} />
-        <Controls showInteractive={false} />
+        <Background gap={16} size={1} color="rgba(128,128,128,0.3)" />
       </ReactFlow>
     </div>
   )
