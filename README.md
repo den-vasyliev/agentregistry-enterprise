@@ -20,7 +20,8 @@
     <a href="#quick-start">🚀 Quick Start</a> •
     <a href="#features">✨ Features</a> •
     <a href="#architecture">🏗️ Architecture</a> •
-    <a href="#docs">📚 Docs</a>
+    <a href="#docs">📚 Docs</a> •
+    <a href="CONCEPT.md">📝 Blog</a>
   </p>
 <p><h3>Automatically indexes MCP servers, agents, skills, and models across clusters.
 
