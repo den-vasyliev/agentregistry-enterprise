@@ -689,7 +689,7 @@ class AdminApiClient {
     if (params?.updated_since) queryParams.append('updated_since', params.updated_since)
 
     const url = `${this.baseUrl}/admin/v0/skills${queryParams.toString() ? '?' + queryParams.toString() : ''}`
-    const response = await fetch(url)
+    const response = await this.fetchWithRetry(url, { headers: this.getHeaders() })
     if (!response.ok) {
       throw new Error('Failed to fetch skills')
     }
@@ -772,7 +772,7 @@ class AdminApiClient {
     if (params?.updated_since) queryParams.append('updated_since', params.updated_since)
 
     const url = `${this.baseUrl}/admin/v0/agents${queryParams.toString() ? '?' + queryParams.toString() : ''}`
-    const response = await fetch(url)
+    const response = await this.fetchWithRetry(url, { headers: this.getHeaders() })
     if (!response.ok) {
       throw new Error('Failed to fetch agents')
     }
@@ -853,7 +853,7 @@ class AdminApiClient {
     if (params?.provider) queryParams.append('provider', params.provider)
 
     const url = `${this.baseUrl}/admin/v0/models${queryParams.toString() ? '?' + queryParams.toString() : ''}`
-    const response = await fetch(url)
+    const response = await this.fetchWithRetry(url, { headers: this.getHeaders() })
     if (!response.ok) {
       throw new Error('Failed to fetch models')
     }
