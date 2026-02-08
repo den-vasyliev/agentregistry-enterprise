@@ -156,12 +156,19 @@ spec:
   version: "1.0.0"
   title: "Filesystem MCP Server"
   description: "Provides file system access tools"
+  websiteUrl: "https://github.com/modelcontextprotocol/servers"
+  repository:
+    url: "https://github.com/modelcontextprotocol/servers"
+    source: github
   packages:
     - registryType: npm
       identifier: "@modelcontextprotocol/server-filesystem"
       version: "0.6.1"
       transport:
         type: stdio
+  remotes:                        # Optional: streamable-http endpoints
+    - type: streamable-http
+      url: "https://mcp.example.com/filesystem"
 ```
 
 ### 🚀 Deploy to Runtime
@@ -175,9 +182,13 @@ metadata:
 spec:
   resourceName: "filesystem"
   version: "1.0.0"
-  resourceType: mcp             # mcp | agent | skill
+  resourceType: mcp             # mcp | agent
+  runtime: kubernetes           # Required: deployment runtime
   namespace: default            # Target namespace
   preferRemote: false           # Use local package vs remote endpoint
+  environment: ""               # Target environment (from DiscoveryConfig), empty = local cluster
+  config:                       # Optional: deployment configuration
+    LOG_LEVEL: "info"
 ```
 
 The controller reconciles this → creates MCPServer/Agent CRs → tracks status.
@@ -197,13 +208,21 @@ spec:
         name: prod-gke
         projectId: my-gcp-project
         zone: us-central1
+        region: us-central1          # Alternative to zone
         useWorkloadIdentity: true
-      provider: gcp
+        serviceAccount: ""           # SA for workload identity
+      provider: gcp                  # gcp | aws | azure
+      discoveryEnabled: true         # Enable/disable discovery (default: true)
+      deployEnabled: false           # Allow deploying to this environment
       namespaces: [ai-workloads, agents]
       resourceTypes: [MCPServer, Agent, ModelConfig]
       labels:
         environment: production
         tier: critical
+      registry:                      # Optional: container registry for this env
+        url: "us-docker.pkg.dev/my-project"
+        prefix: "ai-images"
+        useWorkloadIdentity: true
 ```
 
 [→ Full Autodiscovery Docs](docs/AUTODISCOVERY.md)
