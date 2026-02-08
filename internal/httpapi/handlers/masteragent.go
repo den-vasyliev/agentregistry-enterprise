@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
 	"github.com/agentregistry-dev/agentregistry/internal/masteragent"
@@ -178,6 +179,12 @@ func (h *MasterAgentHandler) pushEvent(ctx context.Context, input *PushEventInpu
 		Severity: severity,
 		Message:  input.Body.Message,
 		Raw:      input.Body.Raw,
+	}
+
+	// Pre-assign ID so we can return it in the response
+	// (Push takes event by value, so mutations inside Push don't propagate back)
+	if event.ID == "" {
+		event.ID = uuid.New().String()
 	}
 
 	if !hub.Push(event) {

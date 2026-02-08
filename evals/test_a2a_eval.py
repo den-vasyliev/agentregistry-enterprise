@@ -1,4 +1,11 @@
-"""A2A-based evaluations using ADK AgentEvaluator."""
+"""A2A-based evaluations using ADK AgentEvaluator.
+
+These tests use the experimental RemoteA2aAgent and require:
+- A2A server running on MASTER_AGENT_A2A_URL (default: http://localhost:8084)
+- google-adk[eval] installed
+
+Run separately: pytest test_a2a_eval.py -v -m a2a
+"""
 
 import os
 
@@ -6,6 +13,8 @@ import pytest
 from google.adk.evaluation.agent_evaluator import AgentEvaluator
 
 EVAL_DIR = os.path.join(os.path.dirname(__file__), "eval_datasets")
+
+pytestmark = pytest.mark.a2a
 
 
 @pytest.mark.asyncio

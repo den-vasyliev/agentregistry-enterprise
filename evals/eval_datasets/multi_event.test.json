@@ -34,13 +34,17 @@
               {
                 "name": "create_incident",
                 "args": {
-                  "Severity": "critical",
-                  "Source": "k8s/pod/default/api-server-xyz"
+                  "id": "api-server-xyz-oomkill",
+                  "severity": "critical",
+                  "source": "k8s/pod/default/api-server-xyz",
+                  "summary": "Pod api-server-xyz in namespace default is OOMKilled"
                 }
               },
               {
                 "name": "update_world_state",
-                "args": {}
+                "args": {
+                  "summary": "Critical: pod api-server-xyz in default namespace is OOMKilled. Incident created."
+                }
               }
             ],
             "intermediate_responses": []
@@ -68,11 +72,15 @@
             "tool_uses": [
               {
                 "name": "resolve_incident",
-                "args": {}
+                "args": {
+                  "id": "api-server-xyz-oomkill"
+                }
               },
               {
                 "name": "update_world_state",
-                "args": {}
+                "args": {
+                  "summary": "Pod api-server-xyz in default namespace has recovered. Incident resolved."
+                }
               }
             ],
             "intermediate_responses": []

@@ -3,11 +3,22 @@ name = "agentregistry-evals"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-    "google-adk[a2a]",
+    "google-adk[a2a,eval]",
     "pytest",
     "pytest-asyncio",
     "httpx",
 ]
 
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["master_agent*"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+    "a2a: A2A protocol evals (experimental, run with: pytest -m a2a)",
+]
+addopts = "-m 'not a2a'"

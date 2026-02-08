@@ -3,6 +3,7 @@ package masteragent
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -191,18 +192,23 @@ func TestEventHub_RecentRingBuffer(t *testing.T) {
 }
 
 func TestEventHub_ConcurrentPushPop(t *testing.T) {
-	hub := NewEventHub(100, 50)
+	const pushCount = 50
+	const numPushers = 5
+	const totalExpected = int64(numPushers * pushCount)
+
+	// Buffer large enough to hold all events so none are dropped by non-blocking Push
+	hub := NewEventHub(int(totalExpected), 50)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	const pushCount = 50
-	var wg sync.WaitGroup
+	var pushWg sync.WaitGroup
+	var popWg sync.WaitGroup
 
 	// Pushers
-	for range 5 {
-		wg.Add(1)
+	for range numPushers {
+		pushWg.Add(1)
 		go func() {
-			defer wg.Done()
+			defer pushWg.Done()
 			for range pushCount {
 				hub.Push(InfraEvent{Message: "concurrent"})
 			}
@@ -211,37 +217,34 @@ func TestEventHub_ConcurrentPushPop(t *testing.T) {
 
 	// Poppers
 	var popped int64
-	var popMu sync.Mutex
 	for range 3 {
-		wg.Add(1)
+		popWg.Add(1)
 		go func() {
-			defer wg.Done()
+			defer popWg.Done()
 			for {
 				_, ok := hub.Pop(ctx)
 				if !ok {
 					return
 				}
-				popMu.Lock()
-				popped++
-				popMu.Unlock()
+				atomic.AddInt64(&popped, 1)
 			}
 		}()
 	}
 
-	// Wait for pushers to finish, then drain
-	time.Sleep(100 * time.Millisecond)
-	// Cancel to stop poppers once queue is drained
-	// Give poppers time to drain
-	time.Sleep(50 * time.Millisecond)
-	cancel()
-	wg.Wait()
+	// Wait for all pushers to finish
+	pushWg.Wait()
 
 	// Total pushed should be 5 * pushCount = 250
-	assert.Equal(t, int64(5*pushCount), hub.TotalProcessed())
-	// All events should have been popped (some may remain in queue if cancelled early)
-	popMu.Lock()
-	totalPopped := popped
-	popMu.Unlock()
-	remaining := hub.QueueDepth()
-	assert.Equal(t, int64(5*pushCount), totalPopped+int64(remaining))
+	assert.Equal(t, totalExpected, hub.TotalProcessed())
+
+	// Wait until queue is fully drained by poppers
+	assert.Eventually(t, func() bool {
+		return hub.QueueDepth() == 0
+	}, 5*time.Second, 10*time.Millisecond, "queue should drain")
+
+	cancel()
+	popWg.Wait()
+
+	// All events should have been popped
+	assert.Equal(t, totalExpected, atomic.LoadInt64(&popped))
 }

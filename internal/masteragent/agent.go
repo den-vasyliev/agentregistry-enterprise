@@ -90,7 +90,7 @@ func NewMasterAgent(
 	}
 	createIncidentTool, err := functiontool.New(functiontool.Config{
 		Name:        "create_incident",
-		Description: "Create or update an infrastructure incident",
+		Description: "Create or update an infrastructure incident. Parameters: 'id' (string, unique identifier e.g. 'nginx-abc123-crashloop'), 'severity' (string, one of: info, warning, critical), 'source' (string, origin e.g. 'k8s/pod/namespace/name'), 'summary' (string, human-readable description of the incident).",
 	}, func(ctx tool.Context, args CreateIncidentArgs) (map[string]any, error) {
 		worldState.AddOrUpdateIncident(
 			args.ID, args.Severity, args.Source, args.Summary,
@@ -107,7 +107,7 @@ func NewMasterAgent(
 	}
 	resolveIncidentTool, err := functiontool.New(functiontool.Config{
 		Name:        "resolve_incident",
-		Description: "Mark an incident as resolved",
+		Description: "Mark an incident as resolved. Parameter: 'id' (string, the incident identifier to resolve).",
 	}, func(ctx tool.Context, args ResolveIncidentArgs) (map[string]any, error) {
 		worldState.ResolveIncident(args.ID)
 		return map[string]any{"status": "resolved", "id": args.ID}, nil

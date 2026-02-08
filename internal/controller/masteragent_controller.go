@@ -192,7 +192,8 @@ func (r *MasterAgentReconciler) startA2AServer(ctx context.Context, ag *masterag
 	go func() {
 		webLauncher := web.NewLauncher(weba2a.NewLauncher())
 		// Parse port flag before running
-		if _, err := webLauncher.Parse([]string{"--port", fmt.Sprintf("%d", port)}); err != nil {
+		a2aURL := fmt.Sprintf("http://localhost:%d", port)
+		if _, err := webLauncher.Parse([]string{"--port", fmt.Sprintf("%d", port), "a2a", fmt.Sprintf("--a2a_agent_url=%s", a2aURL)}); err != nil {
 			r.Logger.Error().Err(err).Msg("failed to parse A2A launcher args")
 			return
 		}

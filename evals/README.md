@@ -1,6 +1,6 @@
 # Master Agent Evaluation Suite
 
-Python-based eval suite for testing the master agent via A2A protocol and HTTP API.
+Python-based eval suite for testing the master agent via HTTP API and A2A protocol.
 
 ## Prerequisites
 
@@ -17,22 +17,22 @@ pip install -e .
 
 ## Running Evals
 
-### All tests
+### HTTP event pipeline tests (default)
 
 ```bash
 pytest -v
 ```
 
-### A2A evals (via AgentEvaluator)
+### A2A evals (experimental, requires A2A server on :8084)
 
 ```bash
-pytest test_a2a_eval.py -v
+pytest -m a2a -v
 ```
 
-### HTTP event pipeline tests
+### All tests including A2A
 
 ```bash
-pytest test_http_events.py -v
+pytest -m '' -v
 ```
 
 ## Configuration
@@ -50,6 +50,6 @@ pytest test_http_events.py -v
 
 ## Adding New Evals
 
-1. Create a new `.test.json` file in `eval_datasets/`
-2. Each entry needs `query`, `expected_tool_use`, and `reference` fields
+1. Create a new `.test.json` file in `eval_datasets/` using the ADK EvalSet schema
+2. Each eval case needs a `conversation` array with `user_content`, `final_response`, and `intermediate_data.tool_uses`
 3. Add a test function in `test_a2a_eval.py` pointing to the new dataset
