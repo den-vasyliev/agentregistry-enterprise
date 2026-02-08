@@ -469,7 +469,7 @@ func (s *Server) importFromSource(ctx context.Context, input *ImportInput) (*Imp
 
 		// Check if server already exists
 		existing := &agentregistryv1alpha1.MCPServerCatalog{}
-		err := s.client.Get(ctx, client.ObjectKey{Name: crName}, existing)
+		err := s.client.Get(ctx, client.ObjectKey{Namespace: config.GetNamespace(), Name: crName}, existing)
 		if err == nil {
 			// Server exists
 			if !input.Body.Update {
