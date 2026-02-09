@@ -15,6 +15,7 @@ rules:
       - modelcatalogs
       - registrydeployments
       - discoveryconfigs
+      - masteragentconfigs
     verbs:
       - get
       - list
@@ -32,6 +33,7 @@ rules:
       - modelcatalogs/status
       - registrydeployments/status
       - discoveryconfigs/status
+      - masteragentconfigs/status
     verbs:
       - get
       - update
@@ -45,6 +47,7 @@ rules:
       - modelcatalogs/finalizers
       - registrydeployments/finalizers
       - discoveryconfigs/finalizers
+      - masteragentconfigs/finalizers
     verbs:
       - update
 

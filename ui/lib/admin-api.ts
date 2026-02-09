@@ -1,11 +1,12 @@
 // Admin API client for the registry management UI
 // This client communicates with the /admin/v0 API endpoints
 
-// Use the UI proxy for authenticated deployments unless we are doing a static export build.
-// In static export mode, we always have NEXT_PUBLIC_API_URL set and call the API directly
+// Determine API base URL:
+// - NEXT_PUBLIC_API_URL set explicitly → use it (empty string = same origin for static export)
+// - Not set → use /api/registry proxy (Next.js server mode with auth)
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL
-    ? (process.env.NEXT_PUBLIC_API_URL || "")
+  process.env.NEXT_PUBLIC_API_URL !== undefined
+    ? process.env.NEXT_PUBLIC_API_URL
     : "/api/registry"
 
 // Retry configuration
