@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"net/http"
 
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/option"
@@ -55,12 +57,6 @@ func (f *Factory) createGKEConfig(ctx context.Context, env *agentregistryv1alpha
 		return nil, fmt.Errorf("failed to get GKE cluster %s: %w", clusterPath, err)
 	}
 
-	// Get a fresh token
-	token, err := creds.TokenSource.Token()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get access token: %w", err)
-	}
-
 	// Decode the CA certificate
 	caData, err := base64.StdEncoding.DecodeString(cluster.MasterAuth.ClusterCaCertificate)
 	if err != nil {
@@ -81,7 +77,16 @@ func (f *Factory) createGKEConfig(ctx context.Context, env *agentregistryv1alpha
 	config.TLSClientConfig = rest.TLSClientConfig{
 		CAData: caData,
 	}
-	config.BearerToken = token.AccessToken
+
+	// Use WrapTransport with oauth2 TokenSource for automatic token renewal.
+	// This replaces the static BearerToken which expired after ~1 hour.
+	ts := creds.TokenSource
+	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return &oauth2.Transport{
+			Source: ts,
+			Base:   rt,
+		}
+	}
 
 	// Set reasonable defaults
 	config.QPS = 50
