@@ -49,12 +49,25 @@ func (r *MCPServerCatalogReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if server.Spec.SourceRef != nil && server.Status.ManagementType == agentregistryv1alpha1.ManagementTypeExternal {
 		if err := r.syncFromSource(ctx, &server, &statusChanged); err != nil {
 			if apierrors.IsNotFound(err) {
-				// Source was deleted, this is expected
-				logger.Debug().Msg("source MCPServer not found, was likely deleted")
+				// Source was deleted — mark as deprecated so users know the source is gone
+				if server.Status.Status != agentregistryv1alpha1.CatalogStatusDeprecated {
+					server.Status.Status = agentregistryv1alpha1.CatalogStatusDeprecated
+					statusChanged = true
+					logger.Info().
+						Str("sourceKind", server.Spec.SourceRef.Kind).
+						Str("sourceName", server.Spec.SourceRef.Name).
+						Str("sourceNamespace", server.Spec.SourceRef.Namespace).
+						Msg("source resource not found, marking catalog entry as deprecated")
+				}
 			} else {
 				logger.Warn().Err(err).Msg("failed to sync from source")
 			}
 			// Don't fail reconciliation
+		} else if server.Status.Status == agentregistryv1alpha1.CatalogStatusDeprecated {
+			// Source reappeared — restore to active
+			server.Status.Status = agentregistryv1alpha1.CatalogStatusActive
+			statusChanged = true
+			logger.Info().Msg("source resource reappeared, restoring catalog entry to active")
 		}
 	}
 

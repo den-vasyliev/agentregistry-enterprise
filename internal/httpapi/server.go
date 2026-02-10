@@ -26,7 +26,6 @@ import (
 	agentregistryv1alpha1 "github.com/agentregistry-dev/agentregistry/api/v1alpha1"
 	"github.com/agentregistry-dev/agentregistry/internal/config"
 	"github.com/agentregistry-dev/agentregistry/internal/httpapi/handlers"
-	"github.com/agentregistry-dev/agentregistry/internal/masteragent"
 	"github.com/agentregistry-dev/agentregistry/internal/version"
 )
 
@@ -35,18 +34,6 @@ var UIFiles fs.FS
 
 // ServerOption is a functional option for configuring the server
 type ServerOption func(*Server)
-
-// WithMasterAgentAccessors sets closures for accessing the master agent hub and agent.
-// This decouples the HTTP API server from the controller package.
-func WithMasterAgentAccessors(
-	getHub func() *masteragent.EventHub,
-	getAgent func() *masteragent.MasterAgent,
-) ServerOption {
-	return func(s *Server) {
-		s.masterAgentGetHub = getHub
-		s.masterAgentGetAgent = getAgent
-	}
-}
 
 // Server is the HTTP API server that reads from the informer cache
 type Server struct {
@@ -59,10 +46,6 @@ type Server struct {
 	allowedTokens  map[string]bool // Simple token allowlist for now
 	oidcVerifier   *OIDCVerifier
 	wrappedHandler http.Handler // Wrapped handler with UI serving
-
-	// Master agent accessors (set via WithMasterAgentAccessors option)
-	masterAgentGetHub   func() *masteragent.EventHub
-	masterAgentGetAgent func() *masteragent.MasterAgent
 }
 
 // NewServer creates a new HTTP API server
@@ -92,11 +75,7 @@ func NewServer(c client.Client, cache cache.Cache, logger zerolog.Logger, opts .
 		opt(s)
 	}
 
-	// Load allowed tokens from Kubernetes Secret
-	s.loadTokensFromSecret()
-
-	// Initialize OIDC verifier (optional)
-	s.initOIDCVerifier()
+	// Note: tokens and OIDC are loaded lazily in Start() when the cache is ready
 
 	s.registerRoutes()
 
@@ -233,12 +212,6 @@ func (s *Server) registerRoutes() {
 	modelHandler := handlers.NewModelHandler(s.client, s.cache, s.logger)
 	deploymentHandler := handlers.NewDeploymentHandler(s.client, s.cache, s.logger)
 	environmentHandler := handlers.NewEnvironmentHandler(s.client, s.cache, s.logger)
-
-	// Register master agent endpoints (public)
-	if s.masterAgentGetHub != nil && s.masterAgentGetAgent != nil {
-		masterAgentHandler := handlers.NewMasterAgentHandler(s.logger, s.masterAgentGetHub, s.masterAgentGetAgent)
-		masterAgentHandler.RegisterRoutes(s.api, "/v0")
-	}
 
 	// Register public API endpoints (v0)
 	serverHandler.RegisterRoutes(s.api, "/v0", false)
@@ -774,6 +747,10 @@ func (s *Server) registerStaticFiles() {
 }
 
 func (r *serverRunnable) Start(ctx context.Context) error {
+	// Load tokens and OIDC now that the cache is started
+	r.server.loadTokensFromSecret()
+	r.server.initOIDCVerifier()
+
 	// Set up CORS - allow configurable origins, default to same-origin only
 	allowedOrigins := []string{}
 	if origins := os.Getenv("AGENTREGISTRY_CORS_ORIGINS"); origins != "" {

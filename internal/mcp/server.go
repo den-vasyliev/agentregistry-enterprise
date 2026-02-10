@@ -29,26 +29,10 @@ type MCPServer struct {
 	allowedTokens map[string]bool
 	mcpServer     *server.MCPServer
 	httpServer    *server.StreamableHTTPServer
-
-	// Master agent accessors (optional, set via WithMasterAgentAccessors)
-	getHub   func() interface{}
-	getAgent func() interface{}
 }
 
 // ServerOption is a functional option for configuring the MCP server
 type ServerOption func(*MCPServer)
-
-// WithMasterAgentAccessors sets closures for accessing the master agent hub and agent.
-// Uses interface{} to avoid import cycle with internal/masteragent.
-func WithMasterAgentAccessors(
-	getHub func() interface{},
-	getAgent func() interface{},
-) ServerOption {
-	return func(s *MCPServer) {
-		s.getHub = getHub
-		s.getAgent = getAgent
-	}
-}
 
 // NewMCPServer creates a new MCP server with all registry tools, resources, and prompts registered.
 func NewMCPServer(c client.Client, cache cache.Cache, logger zerolog.Logger, authEnabled bool, opts ...ServerOption) *MCPServer {
@@ -64,9 +48,6 @@ func NewMCPServer(c client.Client, cache cache.Cache, logger zerolog.Logger, aut
 	for _, opt := range opts {
 		opt(s)
 	}
-
-	// Load allowed tokens from Kubernetes Secret (same as HTTP API)
-	s.loadTokensFromSecret()
 
 	mcpServer := server.NewMCPServer(
 		"agentregistry",
@@ -97,6 +78,9 @@ func (s *MCPServer) Handler() http.Handler {
 // Runnable returns a manager.Runnable that starts the MCP server on its own port.
 func (s *MCPServer) Runnable(addr string) manager.Runnable {
 	return manager.RunnableFunc(func(ctx context.Context) error {
+		// Load tokens now that the cache is started
+		s.loadTokensFromSecret()
+
 		srv := &http.Server{
 			Addr:              addr,
 			Handler:           s.authMiddleware(s.httpServer),

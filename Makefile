@@ -110,32 +110,21 @@ test: envtest ## Run all tests with coverage
 		./internal/controller \
 		./internal/httpapi \
 		./internal/httpapi/handlers \
-		./internal/masteragent \
 		./internal/runtime \
 		./internal/runtime/translation/kagent \
 		./internal/validation
 	@go tool cover -func=coverage.out | grep total:
 
-dev: envtest ## Start interactive dev environment with envtest and sample data
+dev: envtest ## Start interactive dev environment with envtest
 	@echo "═══════════════════════════════════════════════════════════════════"
 	@echo "  Starting dev environment..."
 	@echo "═══════════════════════════════════════════════════════════════════"
-	@echo ""
-	@echo "  The kubeconfig will be saved to: /tmp/agentregistry-dev-kubeconfig.yaml"
-	@echo ""
-	@echo "  After startup, to use kubectl:"
-	@echo "    export KUBECONFIG=/tmp/agentregistry-dev-kubeconfig.yaml"
-	@echo "    kubectl get mcpservercatalog -A"
 	@echo ""
 	@echo "  To start the UI in another terminal:"
 	@echo "    cd ui && NEXT_PUBLIC_API_URL=http://localhost:8080 npm run dev"
 	@echo ""
 	@echo "  Press Ctrl+C to stop"
 	@echo "═══════════════════════════════════════════════════════════════════"
-	@echo ""
-	@cd ui && npm install && NEXT_PUBLIC_DISABLE_AUTH=true npm run dev&
-	@DEVENV=1 KUBEBUILDER_ASSETS="$$($(LOCALBIN)/setup-envtest use --bin-dir $(LOCALBIN) -p path)" \
-		go test -run TestDevEnv -timeout 30m -v ./test/devenv/
 
 lint: prepare-ui-embed ## Run linters (gofmt, go vet)
 	@echo "Running gofmt..."
