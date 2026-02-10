@@ -9,6 +9,7 @@ require (
 	github.com/kagent-dev/kagent/go v0.0.0-20251107200645-686008ea62ac
 	github.com/kagent-dev/kmcp v0.2.2
 	github.com/mark3labs/mcp-go v0.43.2
+	github.com/modelcontextprotocol/go-sdk v0.7.0
 	github.com/modelcontextprotocol/registry v1.3.7
 	github.com/rs/cors v1.11.1
 	github.com/rs/zerolog v1.34.0
@@ -22,6 +23,7 @@ require (
 	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v0.34.1
 	sigs.k8s.io/controller-runtime v0.22.1
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
@@ -52,6 +54,7 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/jsonschema-go v0.3.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.11 // indirect
@@ -86,6 +89,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
 	go.opentelemetry.io/otel v1.39.0 // indirect
 	go.opentelemetry.io/otel/metric v1.39.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v1.39.0 // indirect
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
@@ -110,6 +114,5 @@ require (
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
-	sigs.k8s.io/yaml v1.6.0 // indirect
 	trpc.group/trpc-go/trpc-a2a-go v0.2.4 // indirect
 )

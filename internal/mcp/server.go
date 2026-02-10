@@ -31,8 +31,11 @@ type MCPServer struct {
 	httpServer    *server.StreamableHTTPServer
 }
 
+// ServerOption is a functional option for configuring the MCP server
+type ServerOption func(*MCPServer)
+
 // NewMCPServer creates a new MCP server with all registry tools, resources, and prompts registered.
-func NewMCPServer(c client.Client, cache cache.Cache, logger zerolog.Logger, authEnabled bool) *MCPServer {
+func NewMCPServer(c client.Client, cache cache.Cache, logger zerolog.Logger, authEnabled bool, opts ...ServerOption) *MCPServer {
 	s := &MCPServer{
 		client:        c,
 		cache:         cache,
@@ -41,8 +44,10 @@ func NewMCPServer(c client.Client, cache cache.Cache, logger zerolog.Logger, aut
 		allowedTokens: make(map[string]bool),
 	}
 
-	// Load allowed tokens from Kubernetes Secret (same as HTTP API)
-	s.loadTokensFromSecret()
+	// Apply options
+	for _, opt := range opts {
+		opt(s)
+	}
 
 	mcpServer := server.NewMCPServer(
 		"agentregistry",
@@ -73,6 +78,9 @@ func (s *MCPServer) Handler() http.Handler {
 // Runnable returns a manager.Runnable that starts the MCP server on its own port.
 func (s *MCPServer) Runnable(addr string) manager.Runnable {
 	return manager.RunnableFunc(func(ctx context.Context) error {
+		// Load tokens now that the cache is started
+		s.loadTokensFromSecret()
+
 		srv := &http.Server{
 			Addr:              addr,
 			Handler:           s.authMiddleware(s.httpServer),

@@ -32,6 +32,9 @@ import (
 // UIFiles is the embedded filesystem for UI files, set by main package
 var UIFiles fs.FS
 
+// ServerOption is a functional option for configuring the server
+type ServerOption func(*Server)
+
 // Server is the HTTP API server that reads from the informer cache
 type Server struct {
 	client         client.Client
@@ -46,7 +49,7 @@ type Server struct {
 }
 
 // NewServer creates a new HTTP API server
-func NewServer(c client.Client, cache cache.Cache, logger zerolog.Logger) *Server {
+func NewServer(c client.Client, cache cache.Cache, logger zerolog.Logger, opts ...ServerOption) *Server {
 	mux := http.NewServeMux()
 
 	apiConfig := huma.DefaultConfig("Agent Registry API", "1.0.0")
@@ -67,11 +70,12 @@ func NewServer(c client.Client, cache cache.Cache, logger zerolog.Logger) *Serve
 		allowedTokens: make(map[string]bool),
 	}
 
-	// Load allowed tokens from Kubernetes Secret
-	s.loadTokensFromSecret()
+	// Apply options
+	for _, opt := range opts {
+		opt(s)
+	}
 
-	// Initialize OIDC verifier (optional)
-	s.initOIDCVerifier()
+	// Note: tokens and OIDC are loaded lazily in Start() when the cache is ready
 
 	s.registerRoutes()
 
@@ -743,6 +747,10 @@ func (s *Server) registerStaticFiles() {
 }
 
 func (r *serverRunnable) Start(ctx context.Context) error {
+	// Load tokens and OIDC now that the cache is started
+	r.server.loadTokensFromSecret()
+	r.server.initOIDCVerifier()
+
 	// Set up CORS - allow configurable origins, default to same-origin only
 	allowedOrigins := []string{}
 	if origins := os.Getenv("AGENTREGISTRY_CORS_ORIGINS"); origins != "" {

@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -204,7 +205,7 @@ func (r *DiscoveryConfigReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	logger.Info().Int("environments", len(config.Spec.Environments)).Msg("reconciling DiscoveryConfig")
+	logger.Trace().Int("environments", len(config.Spec.Environments)).Msg("reconciling DiscoveryConfig")
 
 	// Set up informers for each environment/namespace/resourceType
 	for _, env := range config.Spec.Environments {
@@ -336,7 +337,7 @@ func (r *DiscoveryConfigReconciler) createMCPServerInformer(
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			mcpServer := obj.(*kmcpv1alpha1.MCPServer)
-			logger.Info().Str("mcpserver", mcpServer.Name).Msg("MCPServer added")
+			logger.Trace().Str("mcpserver", mcpServer.Name).Msg("MCPServer added")
 			// Add to discovery cache for SourceRef lookups
 			setDiscoveredMCPServer(mcpServer)
 			resourceKey := fmt.Sprintf("mcpserver/%s/%s", mcpServer.Namespace, mcpServer.Name)
@@ -346,7 +347,7 @@ func (r *DiscoveryConfigReconciler) createMCPServerInformer(
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			mcpServer := newObj.(*kmcpv1alpha1.MCPServer)
-			logger.Debug().Str("mcpserver", mcpServer.Name).Msg("MCPServer updated")
+			logger.Trace().Str("mcpserver", mcpServer.Name).Msg("MCPServer updated")
 			// Update discovery cache
 			setDiscoveredMCPServer(mcpServer)
 			resourceKey := fmt.Sprintf("mcpserver/%s/%s", mcpServer.Namespace, mcpServer.Name)
@@ -356,7 +357,7 @@ func (r *DiscoveryConfigReconciler) createMCPServerInformer(
 		},
 		DeleteFunc: func(obj interface{}) {
 			mcpServer := obj.(*kmcpv1alpha1.MCPServer)
-			logger.Info().Str("mcpserver", mcpServer.Name).Msg("MCPServer deleted")
+			logger.Trace().Str("mcpserver", mcpServer.Name).Msg("MCPServer deleted")
 			// Remove from discovery cache
 			deleteDiscoveredMCPServer(mcpServer.Namespace, mcpServer.Name)
 			// TODO: Handle deletion - mark catalog entry as deleted or remove it
@@ -393,7 +394,7 @@ func (r *DiscoveryConfigReconciler) createAgentInformer(
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			agent := obj.(*kagentv1alpha2.Agent)
-			logger.Info().Str("agent", agent.Name).Msg("Agent added")
+			logger.Trace().Str("agent", agent.Name).Msg("Agent added")
 			// Add to discovery cache
 			setDiscoveredAgent(agent)
 			resourceKey := fmt.Sprintf("agent/%s/%s", agent.Namespace, agent.Name)
@@ -403,7 +404,7 @@ func (r *DiscoveryConfigReconciler) createAgentInformer(
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			agent := newObj.(*kagentv1alpha2.Agent)
-			logger.Debug().Str("agent", agent.Name).Msg("Agent updated")
+			logger.Trace().Str("agent", agent.Name).Msg("Agent updated")
 			// Update discovery cache
 			setDiscoveredAgent(agent)
 			resourceKey := fmt.Sprintf("agent/%s/%s", agent.Namespace, agent.Name)
@@ -413,7 +414,7 @@ func (r *DiscoveryConfigReconciler) createAgentInformer(
 		},
 		DeleteFunc: func(obj interface{}) {
 			agent := obj.(*kagentv1alpha2.Agent)
-			logger.Info().Str("agent", agent.Name).Msg("Agent deleted")
+			logger.Trace().Str("agent", agent.Name).Msg("Agent deleted")
 			// Remove from discovery cache
 			deleteDiscoveredAgent(agent.Namespace, agent.Name)
 			// TODO: Handle deletion
@@ -450,7 +451,7 @@ func (r *DiscoveryConfigReconciler) createModelConfigInformer(
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			model := obj.(*kagentv1alpha2.ModelConfig)
-			logger.Info().Str("modelconfig", model.Name).Msg("ModelConfig added")
+			logger.Trace().Str("modelconfig", model.Name).Msg("ModelConfig added")
 			// Add to discovery cache
 			setDiscoveredModelConfig(model)
 			resourceKey := fmt.Sprintf("model/%s/%s", model.Namespace, model.Name)
@@ -460,7 +461,7 @@ func (r *DiscoveryConfigReconciler) createModelConfigInformer(
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			model := newObj.(*kagentv1alpha2.ModelConfig)
-			logger.Debug().Str("modelconfig", model.Name).Msg("ModelConfig updated")
+			logger.Trace().Str("modelconfig", model.Name).Msg("ModelConfig updated")
 			// Update discovery cache
 			setDiscoveredModelConfig(model)
 			resourceKey := fmt.Sprintf("model/%s/%s", model.Namespace, model.Name)
@@ -470,7 +471,7 @@ func (r *DiscoveryConfigReconciler) createModelConfigInformer(
 		},
 		DeleteFunc: func(obj interface{}) {
 			model := obj.(*kagentv1alpha2.ModelConfig)
-			logger.Info().Str("modelconfig", model.Name).Msg("ModelConfig deleted")
+			logger.Trace().Str("modelconfig", model.Name).Msg("ModelConfig deleted")
 			// Remove from discovery cache
 			deleteDiscoveredModelConfig(model.Namespace, model.Name)
 			// TODO: Handle deletion
@@ -507,7 +508,7 @@ func (r *DiscoveryConfigReconciler) createRemoteMCPServerInformer(
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			server := obj.(*kagentv1alpha2.RemoteMCPServer)
-			logger.Info().Str("remotemcpserver", server.Name).Msg("RemoteMCPServer added")
+			logger.Trace().Str("remotemcpserver", server.Name).Msg("RemoteMCPServer added")
 			setDiscoveredRemoteMCPServer(server)
 			resourceKey := fmt.Sprintf("remotemcpserver/%s/%s", server.Namespace, server.Name)
 			r.executeWithRetry(ctx, resourceKey, func() error {
@@ -516,7 +517,7 @@ func (r *DiscoveryConfigReconciler) createRemoteMCPServerInformer(
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			server := newObj.(*kagentv1alpha2.RemoteMCPServer)
-			logger.Debug().Str("remotemcpserver", server.Name).Msg("RemoteMCPServer updated")
+			logger.Trace().Str("remotemcpserver", server.Name).Msg("RemoteMCPServer updated")
 			setDiscoveredRemoteMCPServer(server)
 			resourceKey := fmt.Sprintf("remotemcpserver/%s/%s", server.Namespace, server.Name)
 			r.executeWithRetry(ctx, resourceKey, func() error {
@@ -525,7 +526,7 @@ func (r *DiscoveryConfigReconciler) createRemoteMCPServerInformer(
 		},
 		DeleteFunc: func(obj interface{}) {
 			server := obj.(*kagentv1alpha2.RemoteMCPServer)
-			logger.Info().Str("remotemcpserver", server.Name).Msg("RemoteMCPServer deleted")
+			logger.Trace().Str("remotemcpserver", server.Name).Msg("RemoteMCPServer deleted")
 			deleteDiscoveredRemoteMCPServer(server.Namespace, server.Name)
 		},
 	})
@@ -871,6 +872,12 @@ func (r *DiscoveryConfigReconciler) handleAgentAdd(
 	labels["agentregistry.dev/environment"] = env.Name
 	labels["agentregistry.dev/cluster"] = env.Cluster.Name
 
+	// Build annotations
+	annotations := make(map[string]string)
+	if env.A2AEndpoint != "" {
+		annotations["agentregistry.dev/a2a-endpoint"] = fmt.Sprintf("%s/api/a2a/%s/%s/", strings.TrimRight(env.A2AEndpoint, "/"), agent.Namespace, agent.Name)
+	}
+
 	// Extract kagent-specific data
 	agentType := string(agent.Spec.Type)
 	systemMessage := ""
@@ -924,9 +931,10 @@ func (r *DiscoveryConfigReconciler) handleAgentAdd(
 
 	catalog := agentregistryv1alpha1.AgentCatalog{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      catalogName,
-			Namespace: namespace,
-			Labels:    labels,
+			Name:        catalogName,
+			Namespace:   namespace,
+			Labels:      labels,
+			Annotations: annotations,
 		},
 		Spec: agentregistryv1alpha1.AgentCatalogSpec{
 			Name:           fmt.Sprintf("%s/%s", agent.Namespace, agent.Name),
@@ -963,6 +971,7 @@ func (r *DiscoveryConfigReconciler) handleAgentAdd(
 
 	existing.Spec = catalog.Spec
 	existing.Labels = labels
+	existing.Annotations = annotations
 	if err := r.Update(ctx, existing); err != nil {
 		return err
 	}

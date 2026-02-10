@@ -80,7 +80,7 @@ func main() {
 	flag.Parse()
 
 	// Set up structured logging with zerolog (re-apply configuration with proper log level)
-	if logLevel == "trace" || logLevel == "debug" {
+	if logLevel == "trace" || logLevel == "debug" || logLevel == "info" {
 		// Use console writer for better readability in development
 		log.Logger = log.Output(zerolog.ConsoleWriter{
 			Out:        os.Stderr,
@@ -93,7 +93,7 @@ func main() {
 			},
 		}).With().Timestamp().Caller().Logger()
 	} else {
-		// Use JSON output for production
+		// Use JSON output for production (warn, error)
 		log.Logger = zerolog.New(os.Stderr).With().Timestamp().Caller().Logger()
 	}
 
@@ -248,7 +248,12 @@ func main() {
 
 	// Set up MCP server on its own port
 	mcpLogger := log.Logger.With().Str("component", "mcp").Logger()
-	mcpServer := registrymcp.NewMCPServer(mgr.GetClient(), mgr.GetCache(), mcpLogger, arconfig.IsAuthEnabled())
+	mcpServer := registrymcp.NewMCPServer(
+		mgr.GetClient(),
+		mgr.GetCache(),
+		mcpLogger,
+		arconfig.IsAuthEnabled(),
+	)
 	if err := mgr.Add(mcpServer.Runnable(mcpAddr)); err != nil {
 		log.Error().Err(err).Msg("unable to add MCP server")
 		os.Exit(1)

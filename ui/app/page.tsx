@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react"
-import { useSession } from "next-auth/react"
+import { useSession } from "@/components/session-provider"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

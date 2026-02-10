@@ -120,6 +120,7 @@ func (s *MCPServer) registerTools() {
 		mcp.WithString("type", mcp.Description("Resource type: servers, agents, skills, or models"), mcp.Required()),
 		mcp.WithString("name", mcp.Description("Resource name to delete"), mcp.Required()),
 	), s.handleDeleteCatalog)
+
 }
 
 // --- Helper functions ---
